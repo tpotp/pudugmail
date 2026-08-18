@@ -1,6 +1,6 @@
 /**
  * PUDÚ GMAIL - MAIN APPLICATION CONTROLLER
- * Infinite Scroll Instagram Feed, Lazy Thumbnail Previews & Inline Audio Streaming
+ * Gold-Standard Infinite Scroll Feed, Lazy Thumbnail Previews & Inline Audio Streaming
  * 100% Client-Side for Vercel Free
  */
 
@@ -11,9 +11,10 @@ const state = {
   sortBy: 'size_desc',
   viewMode: 'grid', // 'grid' | 'table'
 
-  // Infinite Scroll State
-  visibleCount: 24,
-  batchSize: 20,
+  // Infinite Scroll State (Gold Standard)
+  initialBatch: 36,
+  batchSize: 24,
+  visibleCount: 36,
   isLoadingMore: false,
 
   allAttachments: [],
@@ -24,8 +25,8 @@ const state = {
   isScanning: false,
 
   // Blob & Thumbnail Cache
-  blobCache: new Map(), // attId -> Blob / ObjectURL
-  audioPlayers: new Map(), // attId -> Audio object
+  blobCache: new Map(), // attId -> ObjectURL / Poster DataURL
+  audioPlayers: new Map(), // attId -> Audio instance
   currentlyPlayingAudioId: null
 };
 
@@ -55,6 +56,11 @@ const el = {
   emptyState: document.getElementById('emptyState'),
   emptyStateText: document.getElementById('emptyStateText'),
   btnScanEmpty: document.getElementById('btnScanEmpty'),
+
+  // Permanent Infinite Scroll Elements
+  infiniteScrollSentinel: document.getElementById('infiniteScrollSentinel'),
+  infiniteLoader: document.getElementById('infiniteLoader'),
+  infiniteEndMessage: document.getElementById('infiniteEndMessage'),
 
   // Selection & Counters
   selectAllCheckbox: document.getElementById('selectAllCheckbox'),
@@ -116,11 +122,7 @@ const el = {
   // Toast
   puduCelebrationToast: document.getElementById('puduCelebrationToast'),
   toastTitle: document.getElementById('toastTitle'),
-  toastMessage: document.getElementById('toastMessage'),
-
-  // Infinite Scroll Sentinel
-  infiniteSentinel: null,
-  infiniteLoaderSpinner: null
+  toastMessage: document.getElementById('toastMessage')
 };
 
 // ==========================================================================
@@ -297,7 +299,7 @@ function generateVideoPoster(videoUrl, callback) {
   video.onerror = () => callback(videoUrl);
 }
 
-// Intersection Observer for viewport-triggered lazy downloading
+// Single instance of viewport observer for thumbnails
 const cardIntersectionObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
@@ -317,7 +319,7 @@ const cardIntersectionObserver = new IntersectionObserver((entries) => {
   });
 }, {
   root: null,
-  rootMargin: '200px 0px',
+  rootMargin: '250px 0px',
   threshold: 0.01
 });
 
@@ -364,7 +366,7 @@ function applyFiltersAndSort() {
   });
 
   state.filteredAttachments = list;
-  state.visibleCount = 24; // Reset to initial batch for infinite scroll
+  state.visibleCount = state.initialBatch;
 
   renderFeed(true);
   updateSidebarStats();
@@ -418,7 +420,7 @@ function updateSidebarStats() {
 }
 
 // ==========================================================================
-// Rendering: Infinite Feed
+// Rendering: Gold-Standard Infinite Feed
 // ==========================================================================
 
 function renderFeed(isReset = false) {
@@ -429,7 +431,8 @@ function renderFeed(isReset = false) {
     el.emptyState.classList.remove('hidden');
     el.attachmentsGrid.classList.add('hidden');
     el.attachmentsTableContainer.classList.add('hidden');
-    removeInfiniteSentinel();
+    el.infiniteLoader.classList.add('hidden');
+    el.infiniteEndMessage.classList.add('hidden');
     if (state.search) {
       el.emptyStateText.textContent = `No se encontraron adjuntos que coincidan con "${state.search}".`;
     } else if (state.category !== 'all') {
@@ -455,7 +458,15 @@ function renderFeed(isReset = false) {
     el.attachmentsGrid.classList.add('hidden');
   }
 
-  setupInfiniteSentinel();
+  // Update infinite scroll indicator states cleanly
+  if (state.visibleCount >= total) {
+    el.infiniteLoader.classList.add('hidden');
+    el.infiniteEndMessage.classList.remove('hidden');
+  } else {
+    el.infiniteLoader.classList.remove('hidden');
+    el.infiniteEndMessage.classList.add('hidden');
+  }
+
   updateSelectionUI();
 }
 
@@ -464,9 +475,10 @@ function renderGrid(items, isReset) {
     el.attachmentsGrid.innerHTML = '';
   }
 
-  // Identify which items need to be appended
   const currentRenderedCount = isReset ? 0 : el.attachmentsGrid.querySelectorAll('.attachment-card').length;
   const itemsToAppend = items.slice(currentRenderedCount);
+
+  if (itemsToAppend.length === 0) return;
 
   const fragment = document.createDocumentFragment();
 
@@ -496,7 +508,6 @@ function renderGrid(items, isReset) {
           ${item.category === 'videos' ? '<div class="card-video-overlay"><div class="play-btn-circle"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div>' : ''}
         `;
       } else {
-        // Placeholder with smooth shimmer
         const icon = item.category === 'images' ? '🖼️' : '🎬';
         previewContent = `<div class="card-loading-shimmer"><span class="card-icon-fallback">${icon}</span></div>`;
       }
@@ -543,7 +554,6 @@ function renderGrid(items, isReset) {
 
     fragment.appendChild(card);
 
-    // Observe card for lazy thumbnail loading
     if ((item.category === 'images' || item.category === 'videos') && !cachedUrl) {
       cardIntersectionObserver.observe(card);
     }
@@ -571,6 +581,8 @@ function renderTable(items, isReset) {
 
   const currentRenderedCount = isReset ? 0 : el.attachmentsTableBody.querySelectorAll('tr').length;
   const itemsToAppend = items.slice(currentRenderedCount);
+
+  if (itemsToAppend.length === 0) return;
 
   const fragment = document.createDocumentFragment();
 
@@ -625,66 +637,40 @@ function renderTable(items, isReset) {
 }
 
 // ==========================================================================
-// Infinite Scroll Sentinel & Intersection Observer (Instagram Feed Style)
+// Gold-Standard Single Instance Infinite Scroll Observer
 // ==========================================================================
 
-let infiniteScrollObserver = null;
+function initInfiniteScroll() {
+  if (!el.infiniteScrollSentinel) return;
 
-function setupInfiniteSentinel() {
-  removeInfiniteSentinel();
-
-  if (state.visibleCount >= state.filteredAttachments.length) {
-    return; // All items loaded
-  }
-
-  const sentinel = document.createElement('div');
-  sentinel.id = 'infiniteSentinel';
-  sentinel.className = 'infinite-scroll-sentinel';
-  sentinel.innerHTML = `
-    <div class="sentinel-loader">
-      <span class="pudu-loader-icon">🦌💨</span>
-      <span>Cargando más archivos...</span>
-    </div>
-  `;
-
-  el.explorerBody.appendChild(sentinel);
-  el.infiniteSentinel = sentinel;
-
-  if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
-
-  infiniteScrollObserver = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && !state.isLoadingMore) {
-      loadMoreItems();
+  const infiniteObserver = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (entry.isIntersecting && !state.isLoadingMore) {
+      if (state.visibleCount < state.filteredAttachments.length) {
+        loadMoreItems();
+      }
     }
   }, {
     root: el.explorerBody,
-    rootMargin: '300px 0px',
+    rootMargin: '250px 0px',
     threshold: 0.05
   });
 
-  infiniteScrollObserver.observe(sentinel);
-}
-
-function removeInfiniteSentinel() {
-  if (el.infiniteSentinel && el.infiniteSentinel.parentNode) {
-    el.infiniteSentinel.parentNode.removeChild(el.infiniteSentinel);
-    el.infiniteSentinel = null;
-  }
+  infiniteObserver.observe(el.infiniteScrollSentinel);
 }
 
 function loadMoreItems() {
-  if (state.visibleCount >= state.filteredAttachments.length) {
-    removeInfiniteSentinel();
+  if (state.isLoadingMore || state.visibleCount >= state.filteredAttachments.length) {
     return;
   }
 
   state.isLoadingMore = true;
   state.visibleCount += state.batchSize;
 
-  setTimeout(() => {
+  requestAnimationFrame(() => {
     renderFeed(false);
     state.isLoadingMore = false;
-  }, 100);
+  });
 }
 
 // ==========================================================================
@@ -697,7 +683,6 @@ async function handleToggleInlineAudio(attId) {
 
   const btnEl = document.getElementById(`audioBtn_${attId}`);
   const timeEl = document.getElementById(`audioTime_${attId}`);
-  const card = btnEl ? btnEl.closest('.attachment-card') : null;
 
   // If already playing this audio, toggle pause
   if (state.currentlyPlayingAudioId === attId) {
@@ -723,7 +708,6 @@ async function handleToggleInlineAudio(attId) {
     }
   }
 
-  // Indicate loading state
   if (btnEl) btnEl.classList.add('loading');
 
   try {
@@ -1139,7 +1123,6 @@ async function startScan() {
         el.syncPercentText.textContent = `${prog.percent}%`;
       },
       (newChunk) => {
-        // Dynamic Progressive Rendering in real-time
         state.allAttachments = [...state.allAttachments, ...newChunk];
         applyFiltersAndSort();
       },
@@ -1300,6 +1283,9 @@ function initEvents() {
       }
     }
   });
+
+  // Initialize Infinite Scroll Observer once
+  initInfiniteScroll();
 }
 
 function escapeHtml(str) {
