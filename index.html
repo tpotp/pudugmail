@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pudú Gmail Explorer 🦌✉️ | Explorador de Adjuntos</title>
-  <meta name="description" content="Conéctate a tu Gmail, ordena tus fotos y videos por tamaño de mayor a menor, descárgalos y muévelos a tu dispositivo para liberar espacio.">
+  <meta name="description" content="Conéctate con tu cuenta de Gmail en un clic, explora tus fotos y videos ordenados por tamaño de mayor a menor y libera espacio fácilmente.">
 
   <!-- Google Fonts & Styles -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,46 +37,40 @@
     </div>
   </div>
 
-  <!-- AUTHENTICATION HERO SCREEN (Visible when not logged in) -->
+  <!-- ZERO-FRICTION AUTHENTICATION HERO SCREEN (Visible when not logged in) -->
   <div id="loginHeroScreen" class="login-hero-container">
     <div class="login-hero-card">
       <div class="hero-pudu-box">
         <img src="assets/pudu_mascot.jpg" alt="Pudú Cartero" class="hero-pudu-img">
       </div>
-      <h2>Pudú Gmail Explorer</h2>
-      <p class="hero-subtitle">Explora tus fotos, videos y adjuntos de Gmail ordenados por tamaño de mayor a menor y libera espacio fácilmente.</p>
+      
+      <h2>Pudú Gmail</h2>
+      <span class="hero-badge">🇨🇱 CORREO POSTAL</span>
+      
+      <p class="hero-subtitle">
+        Conéctate con tu cuenta de Google para explorar todas tus fotos, videos y adjuntos ordenados de mayor a menor tamaño y liberar espacio en tu cuenta.
+      </p>
 
-      <div id="clientIdSetupBox" class="client-id-setup-box">
-        <div class="setup-guide-card">
-          <div class="setup-guide-header">
-            <span>🔑 Configuración de Google OAuth</span>
-          </div>
-          <p class="setup-text">
-            Para que la app se comunique directamente con tu Gmail desde tu navegador sin servidores intermedios:
-          </p>
-          <ol class="setup-steps">
-            <li>Abre <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="link-styled">Google Cloud Console &rarr; Credenciales</a>.</li>
-            <li>Crea un <strong>ID de cliente de OAuth</strong> (Tipo: <em>Aplicación web</em>).</li>
-            <li>En <strong>Orígenes de JavaScript autorizados</strong> agrega: <br><code>https://pudugmail.vercel.app</code></li>
-            <li>Pega tu <strong>Client ID</strong> aquí abajo:</li>
-          </ol>
-        </div>
+      <!-- 1-CLICK DIRECT GOOGLE SIGN-IN BUTTON -->
+      <div class="hero-action-box">
+        <button id="btnHeroGoogleLogin" class="btn-google-direct w-full">
+          <svg class="google-svg-icon" width="22" height="22" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.97 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+          <span>Conectar con Gmail</span>
+        </button>
 
-        <form id="heroOauthForm" class="hero-oauth-form">
-          <input type="text" id="inputHeroClientId" placeholder="ej: 123456789-abc.apps.googleusercontent.com" required autocomplete="off">
-          <div id="heroErrorAlert" class="error-alert hidden"></div>
-          <button type="submit" id="btnHeroGoogleLogin" class="btn-google-auth-hero w-full">
-            <svg class="google-svg-icon" width="20" height="20" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
-              <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.97 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-            </svg>
-            <span>Iniciar Sesión con Google</span>
-          </button>
-        </form>
+        <div id="heroErrorAlert" class="error-alert hidden"></div>
+
+        <p class="hero-privacy-note">
+          🔒 <strong>100% Seguro y Privado:</strong> La app se ejecuta únicamente en tu navegador. Tus correos y archivos nunca pasan por servidores externos.
+        </p>
       </div>
 
+      <!-- Feature Highlights -->
       <div class="hero-footer-features">
         <div class="hero-feature-item">
           <span>⚖️</span>
@@ -85,13 +79,22 @@
         </div>
         <div class="hero-feature-item">
           <span>📥➡️🗑️</span>
-          <strong>Mover a PC</strong>
+          <strong>Mover al PC</strong>
           <small>Descarga y borra de Gmail</small>
         </div>
         <div class="hero-feature-item">
-          <span>🔒</span>
-          <strong>100% Privado</strong>
-          <small>Procesado en tu navegador</small>
+          <span>📦</span>
+          <strong>Descarga ZIP</strong>
+          <small>Baja múltiples archivos juntos</small>
+        </div>
+      </div>
+
+      <!-- Subtle client config for app administrator -->
+      <div class="hero-admin-link">
+        <button id="btnToggleAdminConfig" class="btn-text-subtle">⚙️ Configuración del Servidor OAuth</button>
+        <div id="adminConfigBox" class="admin-config-box hidden">
+          <input type="text" id="inputAdminClientId" placeholder="Pega tu Google OAuth Client ID">
+          <button id="btnSaveAdminClientId" class="btn-pudu-primary-sm">Guardar ID</button>
         </div>
       </div>
     </div>
@@ -120,7 +123,7 @@
             <img src="assets/pudu_sello.jpg" alt="Sello Postal" class="stamp-mini-img" onerror="this.style.display='none'">
           </div>
           <div class="account-info">
-            <span class="account-email" id="accountEmailDisplay">Conectando...</span>
+            <span class="account-email" id="accountEmailDisplay">Conectado</span>
             <span class="account-status active" id="accountStatusTag">Gmail Activo</span>
           </div>
           <button id="btnLogout" class="btn-icon" title="Cerrar sesión">
@@ -220,7 +223,7 @@
 
       <div class="sidebar-footer">
         <button id="btnRescan" class="btn-pudu-primary w-full">
-          <span>🔄 Escanear Correos</span>
+          <span>🔄 Escanear Nuevos Correos</span>
         </button>
       </div>
     </aside>
@@ -398,12 +401,10 @@
       </div>
 
       <div class="preview-body">
-        <!-- Media Container -->
         <div class="preview-media-viewport" id="modalMediaContainer">
           <!-- Image, Video or Player mounted here -->
         </div>
 
-        <!-- Metadata Side Panel -->
         <div class="preview-meta-panel">
           <div class="pudu-panel-stamp">
             <img src="assets/pudu_sello.jpg" alt="Sello Postal" class="stamp-medium-img">

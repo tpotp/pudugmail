@@ -80,7 +80,7 @@ body.pudu-theme {
 }
 
 /* --------------------------------------------------------------------------
-   Authentication Hero Screen
+   Zero-Friction Authentication Hero Screen
    -------------------------------------------------------------------------- */
 .login-hero-container {
   flex: 1;
@@ -96,135 +96,89 @@ body.pudu-theme {
   background: var(--bg-card);
   border: 1px solid var(--border-wood);
   border-radius: var(--radius-xl);
-  padding: 36px 32px;
-  max-width: 540px;
+  padding: 40px 32px;
+  max-width: 480px;
   width: 100%;
   text-align: center;
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   animation: fadeIn 0.3s ease;
 }
 
 .hero-pudu-box {
-  width: 96px;
-  height: 96px;
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
   overflow: hidden;
   border: 3px solid #2ecc71;
-  box-shadow: 0 4px 16px rgba(46, 204, 113, 0.3);
-  margin-bottom: 4px;
+  box-shadow: 0 4px 20px rgba(46, 204, 113, 0.35);
+  margin-bottom: 2px;
 }
 .hero-pudu-img { width: 100%; height: 100%; object-fit: cover; }
 
 .login-hero-card h2 {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.5px;
+}
+
+.hero-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(231, 76, 60, 0.2);
+  color: #ff7675;
+  padding: 3px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
 }
 
 .hero-subtitle {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
-  max-width: 440px;
-}
-
-.client-id-setup-box {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.setup-guide-card {
-  background: rgba(52, 152, 219, 0.08);
-  border: 1px solid rgba(52, 152, 219, 0.25);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
-  text-align: left;
-}
-
-.setup-guide-header {
-  font-size: 12px;
-  font-weight: 700;
-  color: #3498db;
+  max-width: 380px;
   margin-bottom: 6px;
 }
 
-.setup-text {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.setup-steps {
-  font-size: 11px;
-  color: var(--text-secondary);
-  padding-left: 18px;
-  line-height: 1.6;
-}
-
-.setup-steps code {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 1px 5px;
-  border-radius: 3px;
-  font-family: var(--font-mono);
-  color: #a8e6cf;
-}
-
-.link-styled {
-  color: #3498db;
-  text-decoration: underline;
-}
-
-.hero-oauth-form {
+.hero-action-box {
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: 100%;
 }
 
-.hero-oauth-form input {
-  padding: 11px 14px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-wood);
-  border-radius: var(--radius-sm);
-  color: #fff;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  outline: none;
-  width: 100%;
-}
-.hero-oauth-form input:focus {
-  border-color: #2ecc71;
-  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
-}
-
-.btn-google-auth-hero {
+.btn-google-direct {
   background: #ffffff;
-  color: #3c4043;
+  color: #1f2937;
   border: none;
   border-radius: var(--radius-md);
-  padding: 12px 18px;
+  padding: 14px 20px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.btn-google-auth-hero:hover {
-  background: #f8f9fa;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+
+.btn-google-direct:hover {
+  background: #f3f4f6;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.hero-privacy-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
 }
 
 .hero-footer-features {
@@ -247,6 +201,37 @@ body.pudu-theme {
 .hero-feature-item span { font-size: 18px; margin-bottom: 2px; }
 .hero-feature-item strong { font-size: 11px; color: var(--text-primary); }
 .hero-feature-item small { font-size: 10px; color: var(--text-muted); text-align: center; }
+
+.hero-admin-link {
+  margin-top: 4px;
+}
+.btn-text-subtle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+.btn-text-subtle:hover { opacity: 1; color: var(--text-secondary); }
+
+.admin-config-box {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.admin-config-box input {
+  padding: 6px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  outline: none;
+  width: 240px;
+}
 
 /* --------------------------------------------------------------------------
    Layout

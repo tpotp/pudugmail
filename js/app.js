@@ -22,13 +22,15 @@ const state = {
 
 // DOM Elements
 const el = {
-  // Screens
+  // Screens & Hero
   loginHeroScreen: document.getElementById('loginHeroScreen'),
   mainAppLayout: document.getElementById('mainAppLayout'),
-  heroOauthForm: document.getElementById('heroOauthForm'),
-  inputHeroClientId: document.getElementById('inputHeroClientId'),
-  heroErrorAlert: document.getElementById('heroErrorAlert'),
   btnHeroGoogleLogin: document.getElementById('btnHeroGoogleLogin'),
+  heroErrorAlert: document.getElementById('heroErrorAlert'),
+  btnToggleAdminConfig: document.getElementById('btnToggleAdminConfig'),
+  adminConfigBox: document.getElementById('adminConfigBox'),
+  inputAdminClientId: document.getElementById('inputAdminClientId'),
+  btnSaveAdminClientId: document.getElementById('btnSaveAdminClientId'),
 
   // Navigation & Filters
   navItems: document.querySelectorAll('.nav-item[data-category]'),
@@ -305,7 +307,7 @@ function renderView() {
     } else if (state.category !== 'all') {
       el.emptyStateText.textContent = `No hay adjuntos en la categoría ${getCategoryLabel(state.category)}.`;
     } else {
-      el.emptyStateText.textContent = 'No se encontraron adjuntos o tu bandeja está limpia.';
+      el.emptyStateText.textContent = 'No se encontraron adjuntos en tu bandeja de Gmail.';
     }
     updateSelectionUI();
     updatePaginationUI();
@@ -767,17 +769,10 @@ function closePreviewModal() {
 }
 
 // ==========================================================================
-// Google OAuth & Progressive Sync
+// 1-Click Google OAuth & Progressive Sync
 // ==========================================================================
 
-function handleLoginSubmit(clientId) {
-  if (!clientId || !clientId.includes('.apps.googleusercontent.com')) {
-    el.heroErrorAlert.textContent = 'Por favor ingresa un Client ID válido terminado en .apps.googleusercontent.com';
-    el.heroErrorAlert.classList.remove('hidden');
-    return;
-  }
-
-  window.puduGmailService.setClientId(clientId);
+function handleDirectGoogleLogin() {
   el.heroErrorAlert.classList.add('hidden');
 
   window.puduGmailService.loginWithGoogle(async (res) => {
@@ -786,8 +781,11 @@ function handleLoginSubmit(clientId) {
     } else {
       if (res.error === 'GIS_NOT_LOADED') {
         el.heroErrorAlert.textContent = 'Cargando servicios de Google... Por favor inténtalo de nuevo en 2 segundos.';
+      } else if (res.error === 'NO_CLIENT_ID') {
+        el.heroErrorAlert.innerHTML = 'Falta configurar el Client ID de OAuth en la aplicación. Abre <strong>⚙️ Configuración del Servidor OAuth</strong> abajo.';
+        el.adminConfigBox.classList.remove('hidden');
       } else {
-        el.heroErrorAlert.textContent = `Error de Google: ${res.error || 'Verifica que el Client ID tenga autorizado el origen https://pudugmail.vercel.app'}`;
+        el.heroErrorAlert.textContent = `Error al conectar con Google: ${res.error || 'Verifica tu conexión'}`;
       }
       el.heroErrorAlert.classList.remove('hidden');
     }
@@ -830,11 +828,11 @@ async function startScan() {
         el.syncPercentText.textContent = `${prog.percent}%`;
       },
       (newChunk) => {
-        // Progressive dynamic UI update
+        // Dynamic Progressive Rendering in real-time
         state.allAttachments = [...state.allAttachments, ...newChunk];
         applyFiltersAndSort();
       },
-      250 // Scan up to 250 messages
+      300 // scan up to 300 messages
     );
 
     state.allAttachments = results;
@@ -857,12 +855,26 @@ async function startScan() {
 // ==========================================================================
 
 function initEvents() {
-  // Hero Form Submit
-  if (el.heroOauthForm) {
-    el.heroOauthForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const clientId = el.inputHeroClientId.value.trim();
-      handleLoginSubmit(clientId);
+  // 1-Click Hero Google Login Button
+  if (el.btnHeroGoogleLogin) {
+    el.btnHeroGoogleLogin.addEventListener('click', handleDirectGoogleLogin);
+  }
+
+  // Admin Config Toggle & Save
+  if (el.btnToggleAdminConfig) {
+    el.btnToggleAdminConfig.addEventListener('click', () => {
+      el.adminConfigBox.classList.toggle('hidden');
+    });
+  }
+
+  if (el.btnSaveAdminClientId) {
+    el.btnSaveAdminClientId.addEventListener('click', () => {
+      const val = el.inputAdminClientId.value.trim();
+      if (val) {
+        window.puduGmailService.setClientId(val);
+        showToast('ID Guardado ⚙️', 'Client ID actualizado con éxito.');
+        el.heroErrorAlert.classList.add('hidden');
+      }
     });
   }
 
@@ -1030,10 +1042,9 @@ async function init() {
 
   state.freedSpaceBytes = await window.puduStorage.getSetting('freed_space_bytes', 0);
 
-  // Pre-fill client ID if already saved
-  const savedClientId = window.puduGmailService.getClientId();
-  if (savedClientId && el.inputHeroClientId) {
-    el.inputHeroClientId.value = savedClientId;
+  const currentClientId = window.puduGmailService.getClientId();
+  if (currentClientId && el.inputAdminClientId) {
+    el.inputAdminClientId.value = currentClientId;
   }
 
   // Load cached attachments if any
