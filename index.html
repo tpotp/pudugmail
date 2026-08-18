@@ -88,15 +88,6 @@
           <small>Baja múltiples archivos juntos</small>
         </div>
       </div>
-
-      <!-- Subtle client config for app administrator -->
-      <div class="hero-admin-link">
-        <button id="btnToggleAdminConfig" class="btn-text-subtle">⚙️ Configuración del Servidor OAuth</button>
-        <div id="adminConfigBox" class="admin-config-box hidden">
-          <input type="text" id="inputAdminClientId" placeholder="Pega tu Google OAuth Client ID">
-          <button id="btnSaveAdminClientId" class="btn-pudu-primary-sm">Guardar ID</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -352,22 +343,18 @@
       <span class="floating-size-label" id="selectedSizeLabel">(0 MB)</span>
     </div>
     <div class="floating-bar-actions">
-      <!-- Mover al dispositivo: Descarga + Borra de Gmail -->
       <button id="btnMoveSelectedToDevice" class="btn-action-move" title="Descarga al PC y envía el correo a la papelera de Gmail para liberar espacio">
         <span>📥➡️🗑️ Mover al Dispositivo</span>
       </button>
 
-      <!-- Descargar en ZIP -->
       <button id="btnDownloadSelectedZip" class="btn-action-download" title="Descargar todos los seleccionados en un archivo ZIP">
         <span>⬇️ Descargar ZIP</span>
       </button>
 
-      <!-- Borrar de Gmail -->
       <button id="btnDeleteSelected" class="btn-action-delete" title="Mover correos a la papelera de Gmail">
         <span>🗑️ Borrar de Gmail</span>
       </button>
 
-      <!-- Deseleccionar -->
       <button id="btnClearSelection" class="btn-action-clear" title="Deseleccionar todos">
         &times;
       </button>
@@ -402,7 +389,7 @@
 
       <div class="preview-body">
         <div class="preview-media-viewport" id="modalMediaContainer">
-          <!-- Image, Video or Player mounted here -->
+          <!-- Media mounted dynamically -->
         </div>
 
         <div class="preview-meta-panel">
@@ -454,6 +441,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="js/config.js"></script>
   <script src="js/storage_db.js"></script>
   <script src="js/gmail_service.js"></script>
   <script src="js/app.js"></script>

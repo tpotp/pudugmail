@@ -8,21 +8,27 @@ class GmailService {
     this.accessToken = null;
     this.tokenClient = null;
     this.currentUser = null;
-    this.clientId = localStorage.getItem('pudu_gmail_client_id') || '';
-  }
-
-  setClientId(clientId) {
-    this.clientId = (clientId || '').trim();
-    localStorage.setItem('pudu_gmail_client_id', this.clientId);
-    this.tokenClient = null; // force re-initialization
   }
 
   getClientId() {
-    return this.clientId;
+    const configId = (window.PUDU_CONFIG && window.PUDU_CONFIG.GOOGLE_CLIENT_ID) || '';
+    const storedId = localStorage.getItem('pudu_gmail_client_id') || '';
+    if (storedId && storedId.includes('.apps.googleusercontent.com')) {
+      return storedId;
+    }
+    return configId;
+  }
+
+  setClientId(clientId) {
+    if (clientId) {
+      localStorage.setItem('pudu_gmail_client_id', clientId.trim());
+      this.tokenClient = null;
+    }
   }
 
   hasValidClientId() {
-    return !!this.clientId && this.clientId.includes('.apps.googleusercontent.com');
+    const cid = this.getClientId();
+    return !!cid && cid.includes('.apps.googleusercontent.com') && !cid.startsWith('TU_GOOGLE_CLIENT_ID');
   }
 
   initTokenClient(callback) {
@@ -31,14 +37,15 @@ class GmailService {
       return false;
     }
 
+    const clientId = this.getClientId();
     if (!this.hasValidClientId()) {
       return false;
     }
 
     try {
       this.tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: this.clientId,
-        scope: 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.readonly',
+        client_id: clientId,
+        scope: (window.PUDU_CONFIG && window.PUDU_CONFIG.OAUTH_SCOPES) || 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.readonly',
         callback: async (resp) => {
           if (resp.error) {
             console.error('Error de OAuth Token:', resp);
@@ -124,7 +131,7 @@ class GmailService {
   }
 
   /**
-   * Scans attachments progressively in chunks to keep GUI fluid and responsive.
+   * Progressive dynamic scanning in chunks.
    */
   async scanAttachments(onProgress, onChunkFound, maxMessages = 250) {
     if (!this.accessToken) {
@@ -171,7 +178,6 @@ class GmailService {
           if (!detailRes.ok) return;
           const msg = await detailRes.json();
 
-          // Extract headers
           const headers = msg.payload?.headers || [];
           const getHeader = (name) => {
             const h = headers.find(x => x.name.toLowerCase() === name.toLowerCase());
@@ -191,7 +197,6 @@ class GmailService {
             senderEmail = match[2].trim();
           }
 
-          // Recursive parse parts
           const extractParts = (parts) => {
             if (!parts || !Array.isArray(parts)) return;
             for (const p of parts) {
@@ -238,7 +243,6 @@ class GmailService {
       scanned += chunk.length;
       const pct = Math.round((scanned / totalMsgs) * 90) + 10;
 
-      // Notify caller of new chunk for dynamic GUI rendering
       if (chunkAttachments.length > 0 && onChunkFound) {
         onChunkFound(chunkAttachments);
       }
