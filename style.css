@@ -1576,3 +1576,54 @@ kbd { background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; f
   color: #2ecc71;
 }
 
+/* App Purpose Section (Google Verification Compliance) */
+.app-purpose-section {
+  margin-top: 24px;
+  text-align: left;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 20px;
+}
+
+.app-purpose-section h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.purpose-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.purpose-card strong {
+  display: block;
+  font-size: 13px;
+  color: #2ecc71;
+  margin-bottom: 6px;
+}
+
+.purpose-card p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.purpose-card ul {
+  margin: 4px 0 0 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+}
+
+.purpose-card li {
+  margin-bottom: 4px;
+}
+
+
