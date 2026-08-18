@@ -80,6 +80,175 @@ body.pudu-theme {
 }
 
 /* --------------------------------------------------------------------------
+   Authentication Hero Screen
+   -------------------------------------------------------------------------- */
+.login-hero-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at center, #1b2629 0%, #0d1214 100%);
+  overflow-y: auto;
+}
+
+.login-hero-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-wood);
+  border-radius: var(--radius-xl);
+  padding: 36px 32px;
+  max-width: 540px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: fadeIn 0.3s ease;
+}
+
+.hero-pudu-box {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #2ecc71;
+  box-shadow: 0 4px 16px rgba(46, 204, 113, 0.3);
+  margin-bottom: 4px;
+}
+.hero-pudu-img { width: 100%; height: 100%; object-fit: cover; }
+
+.login-hero-card h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.hero-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 440px;
+}
+
+.client-id-setup-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.setup-guide-card {
+  background: rgba(52, 152, 219, 0.08);
+  border: 1px solid rgba(52, 152, 219, 0.25);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  text-align: left;
+}
+
+.setup-guide-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3498db;
+  margin-bottom: 6px;
+}
+
+.setup-text {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.setup-steps {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+.setup-steps code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  color: #a8e6cf;
+}
+
+.link-styled {
+  color: #3498db;
+  text-decoration: underline;
+}
+
+.hero-oauth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.hero-oauth-form input {
+  padding: 11px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-wood);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  width: 100%;
+}
+.hero-oauth-form input:focus {
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+}
+
+.btn-google-auth-hero {
+  background: #ffffff;
+  color: #3c4043;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  transition: all 0.15s ease;
+}
+.btn-google-auth-hero:hover {
+  background: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+
+.hero-footer-features {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 16px;
+  margin-top: 6px;
+  gap: 10px;
+}
+
+.hero-feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+.hero-feature-item span { font-size: 18px; margin-bottom: 2px; }
+.hero-feature-item strong { font-size: 11px; color: var(--text-primary); }
+.hero-feature-item small { font-size: 10px; color: var(--text-muted); text-align: center; }
+
+/* --------------------------------------------------------------------------
    Layout
    -------------------------------------------------------------------------- */
 .app-layout {
@@ -192,9 +361,7 @@ body.pudu-theme {
   object-fit: cover;
 }
 
-.fallback-avatar {
-  font-size: 24px;
-}
+.fallback-avatar { font-size: 24px; }
 
 .brand-text h2 {
   font-size: 16px;
@@ -220,56 +387,6 @@ body.pudu-theme {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-/* Google Sign-in Buttons */
-.auth-sidebar-box {
-  margin-bottom: 2px;
-}
-
-.btn-google-auth {
-  background: #ffffff;
-  color: #3c4043;
-  border: 1px solid #dadce0;
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-  transition: all 0.15s ease;
-}
-.btn-google-auth:hover {
-  background: #f8f9fa;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-
-.btn-google-auth-large {
-  background: #ffffff;
-  color: #3c4043;
-  border: 1px solid #dadce0;
-  border-radius: var(--radius-md);
-  padding: 12px 18px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  transition: all 0.15s ease;
-}
-.btn-google-auth-large:hover {
-  background: #f8f9fa;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-  transform: translateY(-1px);
 }
 
 /* Account Card with Postal Stamp */
@@ -333,20 +450,9 @@ body.pudu-theme {
   gap: 10px;
 }
 
-.freed-icon {
-  font-size: 24px;
-}
-
-.freed-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.freed-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
+.freed-icon { font-size: 24px; }
+.freed-content { display: flex; flex-direction: column; }
+.freed-label { font-size: 11px; color: var(--text-secondary); }
 .freed-content strong {
   font-family: var(--font-mono);
   font-size: 15px;
@@ -592,9 +698,7 @@ body.pudu-theme {
   outline: none;
   cursor: pointer;
 }
-.select-styled:focus {
-  border-color: #2ecc71;
-}
+.select-styled:focus { border-color: #2ecc71; }
 
 /* View Mode Switcher */
 .view-toggle-group {
@@ -904,13 +1008,8 @@ body.pudu-theme {
   transition: background-color 0.15s ease;
 }
 
-.explorer-table tbody tr:hover {
-  background-color: var(--bg-surface-hover);
-}
-
-.explorer-table tbody tr.selected {
-  background-color: rgba(46, 204, 113, 0.1);
-}
+.explorer-table tbody tr:hover { background-color: var(--bg-surface-hover); }
+.explorer-table tbody tr.selected { background-color: rgba(46, 204, 113, 0.1); }
 
 .table-thumb {
   width: 32px;
@@ -1077,9 +1176,7 @@ body.pudu-theme {
   gap: 8px;
   transition: all 0.15s ease;
 }
-.btn-pudu-primary:hover {
-  filter: brightness(1.08);
-}
+.btn-pudu-primary:hover { filter: brightness(1.08); }
 
 .btn-pudu-primary-sm {
   background: #2ecc71;
@@ -1273,11 +1370,7 @@ body.pudu-theme {
   border: 1px dashed rgba(255,255,255,0.2);
 }
 
-.preview-meta-panel h4 {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-muted);
-}
+.preview-meta-panel h4 { font-size: 13px; font-weight: 700; color: var(--text-muted); }
 
 .meta-item { display: flex; flex-direction: column; gap: 3px; }
 .meta-label { font-size: 11px; color: var(--text-muted); }
@@ -1288,121 +1381,15 @@ body.pudu-theme {
 .meta-hint { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
 kbd { background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; font-family: var(--font-mono); }
 
-/* --------------------------------------------------------------------------
-   Connect Dialog (Modal)
-   -------------------------------------------------------------------------- */
-.connect-dialog {
-  background: var(--bg-modal);
-  border: 1px solid var(--border-wood);
-  border-radius: var(--radius-lg);
-  width: 480px;
-  max-width: 95vw;
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-
-.connect-header {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.connect-title-icon { font-size: 32px; }
-.connect-header h3 { font-size: 16px; font-weight: 700; }
-.connect-header p { font-size: 12px; color: var(--text-secondary); }
-
-.connect-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-
-.modal-login-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.modal-login-disclaimer {
-  font-size: 11px;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
-.divider-text {
-  display: flex;
-  align-items: center;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-}
-.divider-text::before, .divider-text::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.divider-text span { padding: 0 10px; }
-
-.modal-alt-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.advanced-oauth-details summary {
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  user-select: none;
-}
-.advanced-oauth-details summary:hover { color: #2ecc71; }
-
-.connect-form { display: flex; flex-direction: column; gap: 10px; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-.form-group input {
-  padding: 8px 12px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 13px;
-  outline: none;
-}
-.form-group input:focus { border-color: #2ecc71; }
-
 .error-alert {
   background: rgba(231, 76, 60, 0.15);
   border: 1px solid rgba(231, 76, 60, 0.3);
   color: #ff7675;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
-}
-
-/* --------------------------------------------------------------------------
-   Empty State & Utilities
-   -------------------------------------------------------------------------- */
-.empty-state { margin: auto; text-align: center; padding: 40px 20px; max-width: 420px; }
-.empty-pudu-box { margin-bottom: 14px; }
-.empty-pudu-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #2ecc71; }
-.empty-state h3 { font-size: 16px; margin-bottom: 6px; }
-.empty-state p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
-
-.pagination-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 16px 0;
   font-size: 12px;
-  color: var(--text-secondary);
+  text-align: left;
+  line-height: 1.4;
 }
 
 .hidden { display: none !important; }
