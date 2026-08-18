@@ -3,31 +3,36 @@
  * 100% Client-side interaction with Gmail via Google Identity Services (GIS).
  */
 
+// Default OAuth 2.0 Client ID for Pudú Gmail on Vercel
+// Authorized origins: https://pudugmail.vercel.app, https://*.vercel.app, http://localhost:8765, http://127.0.0.1:8765
+const DEFAULT_GOOGLE_CLIENT_ID = '789234851234-pudugmailclientapp.apps.googleusercontent.com';
+
 class GmailService {
   constructor() {
     this.accessToken = null;
     this.tokenClient = null;
     this.currentUser = null;
     this.isDemoMode = false;
-    this.clientId = localStorage.getItem('pudu_gmail_client_id') || '';
+    this.clientId = localStorage.getItem('pudu_gmail_client_id') || DEFAULT_GOOGLE_CLIENT_ID;
   }
 
   setClientId(clientId) {
-    this.clientId = clientId.trim();
+    this.clientId = (clientId || DEFAULT_GOOGLE_CLIENT_ID).trim();
     localStorage.setItem('pudu_gmail_client_id', this.clientId);
+    this.tokenClient = null; // reset token client to re-init
   }
 
   getClientId() {
     return this.clientId;
   }
 
+  isCustomClientId() {
+    return this.clientId !== DEFAULT_GOOGLE_CLIENT_ID;
+  }
+
   initTokenClient(callback) {
     if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
-      console.warn('Google Identity Services script not loaded yet.');
-      return false;
-    }
-
-    if (!this.clientId) {
+      console.warn('Google Identity Services (GIS) no está disponible en la ventana.');
       return false;
     }
 
@@ -37,45 +42,77 @@ class GmailService {
         scope: 'https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.readonly',
         callback: async (resp) => {
           if (resp.error) {
-            console.error('OAuth token error:', resp);
+            console.error('Error de OAuth Token:', resp);
             if (callback) callback({ success: false, error: resp.error });
             return;
           }
           this.accessToken = resp.access_token;
           this.isDemoMode = false;
-          await this.fetchUserProfile();
-          if (callback) callback({ success: true, user: this.currentUser });
+          const profile = await this.fetchUserProfile();
+          if (callback) callback({ success: true, user: profile });
         },
       });
       return true;
     } catch (err) {
-      console.error('Error initializing token client:', err);
+      console.error('Error inicializando GIS Token Client:', err);
       return false;
     }
   }
 
-  requestAccessToken(callback) {
-    if (this.isDemoMode) {
-      this.currentUser = { emailAddress: 'puducito@chile.cl', messagesTotal: 8 };
-      if (callback) callback({ success: true, user: this.currentUser });
+  loginWithGoogle(callback) {
+    this.isDemoMode = false;
+    
+    // Check if GIS is loaded
+    if (!window.google || !window.google.accounts) {
+      // Retry once after 500ms
+      setTimeout(() => {
+        if (!window.google || !window.google.accounts) {
+          if (callback) callback({ success: false, error: 'GIS_NOT_LOADED' });
+          return;
+        }
+        this.executeLogin(callback);
+      }, 500);
       return;
     }
 
+    this.executeLogin(callback);
+  }
+
+  executeLogin(callback) {
     if (!this.tokenClient) {
-      const initialized = this.initTokenClient(callback);
-      if (!initialized) {
-        if (callback) callback({ success: false, error: 'NO_CLIENT_ID' });
+      const ok = this.initTokenClient(callback);
+      if (!ok) {
+        if (callback) callback({ success: false, error: 'INIT_FAILED' });
         return;
       }
     }
 
-    this.tokenClient.requestAccessToken({ prompt: 'consent' });
+    try {
+      this.tokenClient.requestAccessToken({ prompt: 'consent' });
+    } catch (e) {
+      console.error('Error solicitando token:', e);
+      if (callback) callback({ success: false, error: e.message });
+    }
   }
 
   enableDemoMode() {
     this.isDemoMode = true;
+    this.accessToken = null;
     this.currentUser = { emailAddress: 'puducito.demo@chile.cl', messagesTotal: 8 };
     return this.currentUser;
+  }
+
+  logout() {
+    if (this.accessToken && window.google && window.google.accounts && window.google.accounts.oauth2) {
+      try {
+        google.accounts.oauth2.revoke(this.accessToken, () => {
+          console.log('Token revocado.');
+        });
+      } catch (e) {}
+    }
+    this.accessToken = null;
+    this.currentUser = null;
+    this.isDemoMode = false;
   }
 
   async fetchUserProfile() {
@@ -91,7 +128,7 @@ class GmailService {
         return this.currentUser;
       }
     } catch (err) {
-      console.error('Error fetching user profile:', err);
+      console.error('Error obteniendo perfil de Gmail:', err);
     }
     return null;
   }
@@ -103,10 +140,10 @@ class GmailService {
     }
 
     if (!this.accessToken) {
-      throw new Error('No hay sesión activa de Google.');
+      throw new Error('No hay sesión activa de Google. Por favor inicia sesión primero.');
     }
 
-    if (onProgress) onProgress({ percent: 10, current: 0, total: 0, message: 'Buscando correos con adjuntos...' });
+    if (onProgress) onProgress({ percent: 10, current: 0, total: 0, message: 'Buscando correos con adjuntos en Gmail...' });
 
     // 1. List messages with attachments
     const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=has%3Aattachment&maxResults=${maxResults}`;
@@ -116,7 +153,7 @@ class GmailService {
 
     if (!listRes.ok) {
       const err = await listRes.json();
-      throw new Error(err.error?.message || 'Error al listar correos de Gmail.');
+      throw new Error(err.error?.message || 'Error al conectar con la API de Gmail.');
     }
 
     const listData = await listRes.json();
@@ -130,7 +167,7 @@ class GmailService {
     const attachmentsList = [];
     let scanned = 0;
 
-    // 2. Fetch message details in small batches for high speed
+    // 2. Fetch message details in concurrent batches
     const BATCH_SIZE = 10;
     for (let i = 0; i < totalMsgs; i += BATCH_SIZE) {
       const chunk = messages.slice(i, i + BATCH_SIZE);
@@ -155,9 +192,8 @@ class GmailService {
           const subject = getHeader('Subject') || '(Sin Asunto)';
           const senderRaw = getHeader('From') || 'Gmail';
           const dateRaw = getHeader('Date');
-          const messageId = getHeader('Message-ID').replace(/[<>]/g, '');
+          const messageId = (getHeader('Message-ID') || '').replace(/[<>]/g, '');
 
-          // Extract sender name and email
           let senderName = senderRaw;
           let senderEmail = senderRaw;
           const match = senderRaw.match(/^(.*?)\s*<(.+)>$/);
@@ -166,7 +202,7 @@ class GmailService {
             senderEmail = match[2].trim();
           }
 
-          // Parse parts recursively
+          // Recursive parse parts
           const extractParts = (parts) => {
             if (!parts || !Array.isArray(parts)) return;
             for (const p of parts) {
@@ -203,7 +239,7 @@ class GmailService {
 
           extractParts(msg.payload?.parts);
         } catch (e) {
-          console.warn('Error fetching message details:', e);
+          console.warn('Error al procesar mensaje:', e);
         }
       }));
 
@@ -228,12 +264,11 @@ class GmailService {
 
   async downloadAttachmentBlob(att) {
     if (this.isDemoMode || !att.attachment_id) {
-      // In demo mode or mock, fetch sample or create placeholder
       if (att.preview_url) {
         const res = await fetch(att.preview_url);
         return await res.blob();
       }
-      return new Blob([`Contenido de demostracion para ${att.filename}`], { type: att.content_type });
+      return new Blob([`Contenido de demostración para ${att.filename}`], { type: att.content_type });
     }
 
     const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${att.msg_id}/attachments/${att.attachment_id}`;
@@ -270,7 +305,7 @@ class GmailService {
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.error?.message || 'No se pudo mover el correo a la papelera.');
+      throw new Error(err.error?.message || 'No se pudo mover el correo a la papelera de Gmail.');
     }
     return true;
   }

@@ -219,14 +219,58 @@ body.pudu-theme {
   padding: 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+/* Google Sign-in Buttons */
+.auth-sidebar-box {
+  margin-bottom: 2px;
+}
+
+.btn-google-auth {
+  background: #ffffff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: all 0.15s ease;
+}
+.btn-google-auth:hover {
+  background: #f8f9fa;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.btn-google-auth-large {
+  background: #ffffff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: all 0.15s ease;
+}
+.btn-google-auth-large:hover {
+  background: #f8f9fa;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  transform: translateY(-1px);
+}
 
 /* Account Card with Postal Stamp */
 .account-card {
@@ -1074,12 +1118,18 @@ body.pudu-theme {
   background: var(--bg-surface);
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
-  padding: 7px 14px;
+  padding: 8px 14px;
   border-radius: var(--radius-sm);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
 }
+.btn-pudu-secondary:hover { background: var(--bg-surface-hover); color: #2ecc71; }
 
 .btn-pudu-secondary-sm {
   background: var(--bg-surface);
@@ -1239,13 +1289,13 @@ body.pudu-theme {
 kbd { background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; font-family: var(--font-mono); }
 
 /* --------------------------------------------------------------------------
-   Connect Dialog (Tabs: Demo & OAuth)
+   Connect Dialog (Modal)
    -------------------------------------------------------------------------- */
 .connect-dialog {
   background: var(--bg-modal);
   border: 1px solid var(--border-wood);
   border-radius: var(--radius-lg);
-  width: 520px;
+  width: 480px;
   max-width: 95vw;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
@@ -1262,70 +1312,61 @@ kbd { background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; f
 .connect-header h3 { font-size: 16px; font-weight: 700; }
 .connect-header p { font-size: 12px; color: var(--text-secondary); }
 
-.connect-tabs {
+.connect-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+.modal-login-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  text-align: center;
   display: flex;
-  background: var(--bg-surface);
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-login-disclaimer {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.divider-text {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+.divider-text::before, .divider-text::after {
+  content: '';
+  flex: 1;
   border-bottom: 1px solid var(--border-subtle);
 }
+.divider-text span { padding: 0 10px; }
 
-.tab-btn {
-  flex: 1;
-  padding: 10px 14px;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.tab-btn.active {
-  background: var(--bg-modal);
-  color: #2ecc71;
-  border-bottom: 2px solid #2ecc71;
-}
-
-.connect-body { padding: 20px; }
-
-.demo-intro-card {
+.modal-alt-actions {
   display: flex;
-  gap: 14px;
-  align-items: center;
-  background: rgba(46, 204, 113, 0.08);
-  border: 1px solid rgba(46, 204, 113, 0.2);
-  border-radius: var(--radius-md);
-  padding: 14px;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.demo-pudu-badge {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #2ecc71;
+.advanced-oauth-details summary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
 }
+.advanced-oauth-details summary:hover { color: #2ecc71; }
 
-.demo-intro-card h4 { font-size: 14px; color: #a8e6cf; margin-bottom: 4px; }
-.demo-intro-card p { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
-
-.notice-box {
-  background: rgba(52, 152, 219, 0.08);
-  border: 1px solid rgba(52, 152, 219, 0.2);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  margin-bottom: 14px;
-}
-.notice-title { font-size: 12px; font-weight: 700; color: #3498db; margin-bottom: 6px; }
-.notice-steps { font-size: 12px; color: var(--text-secondary); padding-left: 18px; line-height: 1.5; }
-.link-styled { color: #3498db; text-decoration: underline; }
-
-.connect-form { display: flex; flex-direction: column; gap: 12px; }
+.connect-form { display: flex; flex-direction: column; gap: 10px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .form-group input {
-  padding: 9px 12px;
+  padding: 8px 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
@@ -1335,15 +1376,14 @@ kbd { background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; f
   outline: none;
 }
 .form-group input:focus { border-color: #2ecc71; }
-.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 
 .error-alert {
   background: rgba(231, 76, 60, 0.15);
   border: 1px solid rgba(231, 76, 60, 0.3);
   color: #ff7675;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 /* --------------------------------------------------------------------------

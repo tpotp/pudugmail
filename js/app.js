@@ -67,11 +67,13 @@ const el = {
   barDocs: document.getElementById('barDocs'),
   barOther: document.getElementById('barOther'),
 
-  // Account Card & Sync
+  // Auth & Account
+  btnSidebarGoogleLogin: document.getElementById('btnSidebarGoogleLogin'),
+  btnModalGoogleLogin: document.getElementById('btnModalGoogleLogin'),
+  btnSwitchAccount: document.getElementById('btnSwitchAccount'),
   accountEmailDisplay: document.getElementById('accountEmailDisplay'),
   accountStatusTag: document.getElementById('accountStatusTag'),
   btnOpenConnectModal: document.getElementById('btnOpenConnectModal'),
-  btnConnectGoogle: document.getElementById('btnConnectGoogle'),
   btnSyncNow: document.getElementById('btnSyncNow'),
 
   // Sync Progress Banner
@@ -102,14 +104,9 @@ const el = {
   toastTitle: document.getElementById('toastTitle'),
   toastMessage: document.getElementById('toastMessage'),
 
-  // Connect Modal & Tabs
+  // Connect Modal & Forms
   connectModal: document.getElementById('connectModal'),
   btnCloseConnectModal: document.getElementById('btnCloseConnectModal'),
-  btnCancelConnect: document.getElementById('btnCancelConnect'),
-  tabBtnDemo: document.getElementById('tabBtnDemo'),
-  tabBtnOAuth: document.getElementById('tabBtnOAuth'),
-  tabContentDemo: document.getElementById('tabContentDemo'),
-  tabContentOAuth: document.getElementById('tabContentOAuth'),
   btnLaunchDemo: document.getElementById('btnLaunchDemo'),
   oauthConfigForm: document.getElementById('oauthConfigForm'),
   inputGoogleClientId: document.getElementById('inputGoogleClientId'),
@@ -310,7 +307,7 @@ function renderView() {
     } else if (state.category !== 'all') {
       el.emptyStateText.textContent = `No hay adjuntos en la categoría ${getCategoryLabel(state.category)}.`;
     } else {
-      el.emptyStateText.textContent = 'Tu bandeja está limpia o aún no has cargado datos.';
+      el.emptyStateText.textContent = 'Tu bandeja está limpia o aún no has conectado tu cuenta.';
     }
     updateSelectionUI();
     updatePaginationUI();
@@ -319,7 +316,6 @@ function renderView() {
 
   el.emptyState.classList.add('hidden');
 
-  // Slice current page
   const startIdx = (state.page - 1) * state.pageSize;
   const pageItems = state.filteredAttachments.slice(startIdx, startIdx + state.pageSize);
 
@@ -483,7 +479,6 @@ function updateSelectionUI() {
     el.floatingActionBar.classList.add('hidden');
   }
 
-  // Check if all on current page are selected
   const startIdx = (state.page - 1) * state.pageSize;
   const pageItems = state.filteredAttachments.slice(startIdx, startIdx + state.pageSize);
   const allSelected = pageItems.length > 0 && pageItems.every(it => state.selectedIds.has(it.id));
@@ -506,7 +501,6 @@ async function handleMoveToDevice(attId) {
   if (!att) return;
 
   try {
-    // 1. Download file blob
     const blob = await window.puduGmailService.downloadAttachmentBlob(att);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -517,17 +511,14 @@ async function handleMoveToDevice(attId) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
 
-    // 2. Trash email in Gmail
     await window.puduGmailService.moveMessageToTrash(att.msg_id);
 
-    // 3. Update local storage
     att.status = 'moved';
     await window.puduStorage.updateAttachmentStatus(att.id, 'moved');
 
     state.freedSpaceBytes += att.size_bytes || 0;
     await window.puduStorage.setSetting('freed_space_bytes', state.freedSpaceBytes);
 
-    // 4. Celebrate!
     showToast(
       '¡Pudú Postal Feliz! 🦌🎉',
       `Descargaste "${att.filename}" y liberaste ${formatBytes(att.size_bytes)} en tu Gmail.`
@@ -718,7 +709,6 @@ function openPreviewModal(attId) {
   el.modalDownloadBtn.onclick = () => handleDownloadSingle(item.id);
   el.modalDeleteBtn.onclick = () => handleDeleteSingle(item.id);
 
-  // Render media viewer
   el.modalMediaContainer.innerHTML = '';
 
   if (item.category === 'images' && (item.preview_url || item.thumbnail_url)) {
@@ -763,8 +753,29 @@ function closePreviewModal() {
 }
 
 // ==========================================================================
-// Sync & Scans
+// Google OAuth & Sync
 // ==========================================================================
+
+function handleGoogleLogin() {
+  window.puduGmailService.loginWithGoogle(async (res) => {
+    if (res.success) {
+      el.accountEmailDisplay.textContent = res.user?.emailAddress || 'Conectado';
+      el.accountStatusTag.textContent = 'Google Conectado';
+      el.accountStatusTag.classList.add('active');
+      closeConnectModal();
+      showToast('¡Sesión Iniciada! 🦌✉️', `Conectado como ${res.user?.emailAddress || 'usuario de Gmail'}`);
+      startScan();
+    } else {
+      if (res.error === 'GIS_NOT_LOADED') {
+        alert('Cargando servicios de Google... Por favor inténtalo de nuevo en unos segundos.');
+      } else {
+        openConnectModal();
+        el.oauthErrorAlert.textContent = `Error al conectar con Google: ${res.error || 'Cancelado'}`;
+        el.oauthErrorAlert.classList.remove('hidden');
+      }
+    }
+  });
+}
 
 async function startScan() {
   if (state.isScanning) return;
@@ -803,6 +814,11 @@ async function startScan() {
 // ==========================================================================
 
 function initEvents() {
+  // Google Sign In Triggers
+  if (el.btnSidebarGoogleLogin) el.btnSidebarGoogleLogin.addEventListener('click', handleGoogleLogin);
+  if (el.btnModalGoogleLogin) el.btnModalGoogleLogin.addEventListener('click', handleGoogleLogin);
+  if (el.btnSwitchAccount) el.btnSwitchAccount.addEventListener('click', openConnectModal);
+
   // Category tabs
   el.navItems.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -921,23 +937,15 @@ function initEvents() {
   });
 
   // Sync / Scan button
-  el.btnSyncNow.addEventListener('click', startScan);
-
-  // Connect Modal Tabs
-  el.tabBtnDemo.addEventListener('click', () => {
-    el.tabBtnDemo.classList.add('active');
-    el.tabBtnOAuth.classList.remove('active');
-    el.tabContentDemo.classList.remove('hidden');
-    el.tabContentOAuth.classList.add('hidden');
+  el.btnSyncNow.addEventListener('click', () => {
+    if (window.puduGmailService.accessToken || window.puduGmailService.isDemoMode) {
+      startScan();
+    } else {
+      handleGoogleLogin();
+    }
   });
 
-  el.tabBtnOAuth.addEventListener('click', () => {
-    el.tabBtnOAuth.classList.add('active');
-    el.tabBtnDemo.classList.remove('active');
-    el.tabContentOAuth.classList.remove('hidden');
-    el.tabContentDemo.classList.add('hidden');
-  });
-
+  // Demo launch button
   el.btnLaunchDemo.addEventListener('click', () => {
     window.puduGmailService.enableDemoMode();
     state.allAttachments = window.PUDU_DEMO_DATA;
@@ -945,7 +953,7 @@ function initEvents() {
     el.accountEmailDisplay.textContent = 'puducito.demo@chile.cl';
     el.accountStatusTag.textContent = 'Modo Demo Activo';
     closeConnectModal();
-    showToast('¡Modo Demo Activo! 🦌✨', 'Datos de prueba cargados con éxito.');
+    showToast('¡Modo Demo Activo! 🦌✨', 'Datos de prueba de pudúes cargados con éxito.');
     applyFiltersAndSort();
   });
 
@@ -953,34 +961,20 @@ function initEvents() {
     el.btnLaunchDemo.click();
   });
 
+  // Custom OAuth Form
   el.oauthConfigForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const clientId = el.inputGoogleClientId.value.trim();
-    if (!clientId) {
-      el.oauthErrorAlert.textContent = 'Por favor ingresa un Client ID válido.';
-      el.oauthErrorAlert.classList.remove('hidden');
-      return;
+    if (clientId) {
+      window.puduGmailService.setClientId(clientId);
+      showToast('Client ID Guardado ⚙️', 'Se actualizó tu ID de cliente de Google.');
+      el.oauthErrorAlert.classList.add('hidden');
     }
-
-    window.puduGmailService.setClientId(clientId);
-    window.puduGmailService.requestAccessToken(async (res) => {
-      if (res.success) {
-        el.accountEmailDisplay.textContent = res.user?.emailAddress || 'Conectado';
-        el.accountStatusTag.textContent = 'Google Conectado';
-        closeConnectModal();
-        startScan();
-      } else {
-        el.oauthErrorAlert.textContent = `Error de autenticación: ${res.error}`;
-        el.oauthErrorAlert.classList.remove('hidden');
-      }
-    });
   });
 
   // Modal Open/Close
   el.btnOpenConnectModal.addEventListener('click', openConnectModal);
-  el.btnConnectGoogle.addEventListener('click', openConnectModal);
   el.btnCloseConnectModal.addEventListener('click', closeConnectModal);
-  el.btnCancelConnect.addEventListener('click', closeConnectModal);
 
   // Lightbox navigation & shortcuts
   el.btnCloseModal.addEventListener('click', closePreviewModal);
@@ -1029,15 +1023,12 @@ function escapeHtml(str) {
 async function init() {
   initEvents();
 
-  // Load saved settings
   state.freedSpaceBytes = await window.puduStorage.getSetting('freed_space_bytes', 0);
 
-  // Load saved attachments or initialize with Demo data
   const cached = await window.puduStorage.getAllAttachments();
   if (cached && cached.length > 0) {
     state.allAttachments = cached;
   } else {
-    // Default to Pudú Demo data so the app looks alive immediately
     state.allAttachments = window.PUDU_DEMO_DATA;
     await window.puduStorage.saveAttachments(window.PUDU_DEMO_DATA);
   }
