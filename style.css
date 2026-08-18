@@ -931,6 +931,39 @@ body.pudu-theme {
   color: var(--text-secondary);
 }
 
+/* Rich Format Badge Box (AI, PSD, TIF, RAW, CAD, etc.) */
+.card-format-badge-box {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  transition: transform 0.2s ease;
+}
+
+.attachment-card:hover .card-format-badge-box {
+  transform: scale(1.05);
+}
+
+.format-icon {
+  font-size: 46px;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+}
+
+.format-label-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1.5px solid currentColor;
+  background: rgba(15, 20, 22, 0.6);
+  letter-spacing: 0.5px;
+}
+
 /* Card Checkbox */
 .card-checkbox {
   position: absolute;

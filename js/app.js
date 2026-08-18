@@ -1,6 +1,6 @@
 /**
  * PUDÚ GMAIL - MAIN APPLICATION CONTROLLER
- * High-Performance Thumbnail Engine, Persistent IndexedDB Thumbnails & Gold-Standard Infinite Scroll
+ * High-Performance Thumbnail Engine, 100+ Formats Detector & Gold-Standard Infinite Scroll
  * 100% Client-Side for Vercel Free
  */
 
@@ -162,21 +162,6 @@ function getCategoryLabel(cat) {
   return map[cat] || 'Adjuntos';
 }
 
-function getCategoryIcon(cat, filename = '') {
-  if (cat === 'images') return '🖼️';
-  if (cat === 'videos') return '🎬';
-  if (cat === 'audio') return '🎵';
-  if (cat === 'documents') {
-    const lower = (filename || '').toLowerCase();
-    if (lower.endsWith('.pdf')) return '📕';
-    if (lower.match(/\.(doc|docx)$/)) return '📘';
-    if (lower.match(/\.(xls|xlsx|csv)$/)) return '📗';
-    return '📄';
-  }
-  if (cat === 'archives') return '📦';
-  return '📎';
-}
-
 function getGmailSearchUrl(att) {
   if (att.message_id) {
     return `https://mail.google.com/mail/u/0/#search/rfc822msgid%3A${encodeURIComponent(att.message_id)}`;
@@ -206,11 +191,11 @@ function showToast(title, message) {
 const thumbnailQueue = [];
 const queuedSet = new Set();
 let activeThumbnailDownloads = 0;
-const MAX_CONCURRENT_DOWNLOADS = 6; // Fast pipelined parallel downloading
+const MAX_CONCURRENT_DOWNLOADS = 6;
 
 function queueThumbnailDownload(item, containerEl) {
   if (state.blobCache.has(item.id)) {
-    applyThumbnail(item.id, state.blobCache.get(item.id), containerEl, item.category);
+    applyThumbnail(item.id, state.blobCache.get(item.id), containerEl, item);
     return;
   }
 
@@ -235,32 +220,35 @@ async function processThumbnailQueue() {
     const cachedDataUrl = await window.puduStorage.getThumbnail(item.id);
     if (cachedDataUrl) {
       state.blobCache.set(item.id, cachedDataUrl);
-      applyThumbnail(item.id, cachedDataUrl, containerEl, item.category);
+      applyThumbnail(item.id, cachedDataUrl, containerEl, item);
       activeThumbnailDownloads--;
       processThumbnailQueue();
       return;
     }
 
-    // 2. Fetch raw attachment blob from Gmail
-    const blob = await window.puduGmailService.downloadAttachmentBlob(item);
+    const fmt = window.PuduFormats.getDetails(item.filename, item.content_type);
 
-    // 3. Generate lightweight compressed thumbnail
-    if (item.category === 'images') {
+    // Only download if format is actually browser-renderable (Web images or videos)
+    if (fmt.isNativeImage) {
+      const blob = await window.puduGmailService.downloadAttachmentBlob(item);
       const thumbUrl = await generateFastImageThumbnail(blob);
       state.blobCache.set(item.id, thumbUrl);
-      window.puduStorage.saveThumbnail(item.id, thumbUrl); // persist to IndexedDB
-      applyThumbnail(item.id, thumbUrl, containerEl, item.category);
-    } else if (item.category === 'videos') {
+      window.puduStorage.saveThumbnail(item.id, thumbUrl);
+      applyThumbnail(item.id, thumbUrl, containerEl, item);
+    } else if (fmt.isNativeVideo) {
+      const blob = await window.puduGmailService.downloadAttachmentBlob(item);
       const objectUrl = URL.createObjectURL(blob);
       generateVideoPoster(objectUrl, (posterUrl) => {
         state.blobCache.set(item.id, posterUrl);
-        window.puduStorage.saveThumbnail(item.id, posterUrl); // persist to IndexedDB
-        applyThumbnail(item.id, posterUrl, containerEl, item.category);
+        window.puduStorage.saveThumbnail(item.id, posterUrl);
+        applyThumbnail(item.id, posterUrl, containerEl, item);
         URL.revokeObjectURL(objectUrl);
       });
     }
   } catch (err) {
     console.warn(`Error al generar miniatura de ${item.filename}:`, err);
+    // Render format badge gracefully on any error
+    renderFormatFallbackBadge(containerEl, item);
   } finally {
     activeThumbnailDownloads--;
     processThumbnailQueue();
@@ -274,7 +262,6 @@ async function generateFastImageThumbnail(blob) {
   try {
     let bitmap;
     if (window.createImageBitmap) {
-      // Hardware-accelerated decode & resize off main thread
       bitmap = await createImageBitmap(blob, { resizeWidth: 280, resizeQuality: 'low' });
     } else {
       const img = new Image();
@@ -291,14 +278,12 @@ async function generateFastImageThumbnail(blob) {
 
     if (bitmap.close) bitmap.close();
 
-    // Export as lightweight WebP/JPEG (approx 8KB - 12KB)
     try {
       return canvas.toDataURL('image/webp', 0.65);
     } catch (e) {
       return canvas.toDataURL('image/jpeg', 0.65);
     }
   } catch (e) {
-    // Fallback to object URL
     return URL.createObjectURL(blob);
   }
 }
@@ -331,19 +316,27 @@ function generateVideoPoster(videoUrl, callback) {
   video.onerror = () => callback(videoUrl);
 }
 
-function applyThumbnail(itemId, srcUrl, containerEl, category) {
+function applyThumbnail(itemId, srcUrl, containerEl, item) {
   if (!containerEl || !document.body.contains(containerEl)) return;
 
-  if (category === 'images' || category === 'videos') {
+  const fmt = window.PuduFormats.getDetails(item.filename, item.content_type);
+
+  if (fmt.isNativeImage || fmt.isNativeVideo) {
     containerEl.innerHTML = '';
     const img = document.createElement('img');
     img.className = 'card-img-preview fade-in';
     img.src = srcUrl;
     img.alt = '';
     img.loading = 'lazy';
+    
+    // GUARANTEE: Never show a broken image icon if decoding fails
+    img.onerror = () => {
+      renderFormatFallbackBadge(containerEl, item);
+    };
+
     containerEl.appendChild(img);
 
-    if (category === 'videos') {
+    if (fmt.isNativeVideo) {
       const overlay = document.createElement('div');
       overlay.className = 'card-video-overlay';
       overlay.innerHTML = `
@@ -353,22 +346,37 @@ function applyThumbnail(itemId, srcUrl, containerEl, category) {
       `;
       containerEl.appendChild(overlay);
     }
+  } else {
+    renderFormatFallbackBadge(containerEl, item);
   }
 }
 
-// Single instance of viewport observer for thumbnails with pre-fetching margin
+function renderFormatFallbackBadge(containerEl, item) {
+  if (!containerEl) return;
+  const fmt = window.PuduFormats.getDetails(item.filename, item.content_type);
+  containerEl.innerHTML = `
+    <div class="card-format-badge-box" style="background: ${fmt.bg};">
+      <div class="format-icon">${fmt.icon}</div>
+      <div class="format-label-pill" style="color: ${fmt.color}; border-color: ${fmt.color};">${fmt.label}</div>
+    </div>
+  `;
+}
+
+// Single instance of viewport observer for thumbnails
 const cardIntersectionObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
       const card = entry.target;
       const itemId = card.dataset.id;
-      const category = card.dataset.category;
       const previewWrapper = card.querySelector('.card-preview-wrapper');
 
-      if ((category === 'images' || category === 'videos') && previewWrapper) {
+      if (previewWrapper) {
         const item = state.allAttachments.find(x => x.id === itemId);
         if (item) {
-          queueThumbnailDownload(item, previewWrapper);
+          const fmt = window.PuduFormats.getDetails(item.filename, item.content_type);
+          if (fmt.isNativeImage || fmt.isNativeVideo) {
+            queueThumbnailDownload(item, previewWrapper);
+          }
         }
       }
       cardIntersectionObserver.unobserve(card);
@@ -376,7 +384,7 @@ const cardIntersectionObserver = new IntersectionObserver((entries) => {
   });
 }, {
   root: null,
-  rootMargin: '350px 0px', // Pre-fetch thumbnails 350px ahead of viewport for instant appearance
+  rootMargin: '350px 0px',
   threshold: 0.01
 });
 
@@ -515,7 +523,6 @@ function renderFeed(isReset = false) {
     el.attachmentsGrid.classList.add('hidden');
   }
 
-  // Update infinite scroll indicator states cleanly
   if (state.visibleCount >= total) {
     el.infiniteLoader.classList.add('hidden');
     el.infiniteEndMessage.classList.remove('hidden');
@@ -554,21 +561,21 @@ function renderGrid(items, isReset) {
     else if (isLarge) badgeClass = 'badge-large';
 
     const gmailUrl = getGmailSearchUrl(item);
+    const fmt = window.PuduFormats.getDetails(item.filename, item.content_type);
 
     let previewContent = '';
     const cachedUrl = state.blobCache.get(item.id);
 
-    if (item.category === 'images' || item.category === 'videos') {
+    if (fmt.isNativeImage || fmt.isNativeVideo) {
       if (cachedUrl) {
         previewContent = `
-          <img class="card-img-preview" src="${cachedUrl}" alt="" loading="lazy">
-          ${item.category === 'videos' ? '<div class="card-video-overlay"><div class="play-btn-circle"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div>' : ''}
+          <img class="card-img-preview" src="${cachedUrl}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\\'card-format-badge-box\\' style=\\'background: ${fmt.bg};\\'><div class=\\'format-icon\\'>${fmt.icon}</div><div class=\\'format-label-pill\\' style=\\'color: ${fmt.color}; border-color: ${fmt.color};\\'>${fmt.label}</div></div>'">
+          ${fmt.isNativeVideo ? '<div class="card-video-overlay"><div class="play-btn-circle"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div>' : ''}
         `;
       } else {
-        const icon = item.category === 'images' ? '🖼️' : '🎬';
-        previewContent = `<div class="card-loading-shimmer"><span class="card-icon-fallback">${icon}</span></div>`;
+        previewContent = `<div class="card-loading-shimmer"><span class="card-icon-fallback">${fmt.icon}</span></div>`;
       }
-    } else if (item.category === 'audio') {
+    } else if (fmt.isNativeAudio) {
       previewContent = `
         <div class="card-audio-preview" onclick="event.stopPropagation()">
           <div class="audio-pulse-circle" id="audioBtn_${item.id}" onclick="handleToggleInlineAudio('${item.id}')">
@@ -582,8 +589,13 @@ function renderGrid(items, isReset) {
         </div>
       `;
     } else {
-      const icon = getCategoryIcon(item.category, item.filename);
-      previewContent = `<span class="card-icon-fallback">${icon}</span>`;
+      // Specialized file format badge (TIFF, AI, PSD, RAW, PDF, DOC, ZIP, etc.)
+      previewContent = `
+        <div class="card-format-badge-box" style="background: ${fmt.bg};">
+          <div class="format-icon">${fmt.icon}</div>
+          <div class="format-label-pill" style="color: ${fmt.color}; border-color: ${fmt.color};">${fmt.label}</div>
+        </div>
+      `;
     }
 
     card.innerHTML = `
@@ -611,7 +623,7 @@ function renderGrid(items, isReset) {
 
     fragment.appendChild(card);
 
-    if ((item.category === 'images' || item.category === 'videos') && !cachedUrl) {
+    if ((fmt.isNativeImage || fmt.isNativeVideo) && !cachedUrl) {
       cardIntersectionObserver.observe(card);
     }
   });
@@ -650,11 +662,11 @@ function renderTable(items, isReset) {
     row.dataset.id = item.id;
 
     const gmailUrl = getGmailSearchUrl(item);
-    const icon = getCategoryIcon(item.category, item.filename);
-
+    const fmt = window.PuduFormats.getDetails(item.filename, item.content_type);
     const cachedUrl = state.blobCache.get(item.id);
-    let thumbHtml = `<span style="font-size: 20px;">${icon}</span>`;
-    if (item.category === 'images' && cachedUrl) {
+
+    let thumbHtml = `<span style="font-size: 20px;">${fmt.icon}</span>`;
+    if (fmt.isNativeImage && cachedUrl) {
       thumbHtml = `<img class="table-thumb" src="${cachedUrl}" alt="" loading="lazy">`;
     }
 
@@ -663,7 +675,7 @@ function renderTable(items, isReset) {
       <td onclick="openPreviewModal('${item.id}')">${thumbHtml}</td>
       <td onclick="openPreviewModal('${item.id}')"><strong>${escapeHtml(item.filename)}</strong></td>
       <td onclick="openPreviewModal('${item.id}')"><span class="size-pill">${formatBytes(item.size_bytes)}</span></td>
-      <td onclick="openPreviewModal('${item.id}')"><span class="preview-category-badge">${item.category.toUpperCase()}</span></td>
+      <td onclick="openPreviewModal('${item.id}')"><span class="preview-category-badge" style="background: ${fmt.bg}; color: ${fmt.color};">${fmt.label}</span></td>
       <td onclick="openPreviewModal('${item.id}')">${escapeHtml(item.sender_name || item.sender || 'Gmail')}</td>
       <td onclick="openPreviewModal('${item.id}')" style="color: var(--text-secondary); max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(item.subject || '-')}</td>
       <td onclick="openPreviewModal('${item.id}')" style="color: var(--text-muted); font-size: 12px;">${formatDate(item.date)}</td>
@@ -741,7 +753,6 @@ async function handleToggleInlineAudio(attId) {
   const btnEl = document.getElementById(`audioBtn_${attId}`);
   const timeEl = document.getElementById(`audioTime_${attId}`);
 
-  // If already playing this audio, toggle pause
   if (state.currentlyPlayingAudioId === attId) {
     const player = state.audioPlayers.get(attId);
     if (player) {
@@ -756,7 +767,6 @@ async function handleToggleInlineAudio(attId) {
     return;
   }
 
-  // Stop any other currently playing audio
   if (state.currentlyPlayingAudioId) {
     const prevPlayer = state.audioPlayers.get(state.currentlyPlayingAudioId);
     if (prevPlayer) {
@@ -1049,9 +1059,13 @@ async function openPreviewModal(attId) {
   if (index < 0) return;
   state.currentModalIndex = index;
   const item = state.filteredAttachments[index];
+  const fmt = window.PuduFormats.getDetails(item.filename, item.content_type);
 
   el.modalFileName.textContent = item.filename;
-  el.modalCategoryBadge.textContent = item.category.toUpperCase();
+  el.modalCategoryBadge.textContent = fmt.label;
+  el.modalCategoryBadge.style.backgroundColor = fmt.bg;
+  el.modalCategoryBadge.style.color = fmt.color;
+
   el.modalSize.textContent = formatBytes(item.size_bytes);
   el.modalDate.textContent = formatDate(item.date);
   el.modalSender.textContent = `${item.sender_name || ''} <${item.sender || ''}>`.trim();
@@ -1075,13 +1089,22 @@ async function openPreviewModal(attId) {
       previewSrc = URL.createObjectURL(blob);
     }
 
-    if (item.category === 'images') {
+    if (fmt.isNativeImage) {
       el.modalMediaContainer.innerHTML = '';
       const img = document.createElement('img');
       img.src = previewSrc;
       img.alt = item.filename;
+      img.onerror = () => {
+        el.modalMediaContainer.innerHTML = `
+          <div style="text-align: center;">
+            <div style="font-size: 80px; margin-bottom: 16px;">${fmt.icon}</div>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">Archivo ${fmt.label} listo para descargar.</p>
+            <button class="btn-pudu-primary" onclick="handleDownloadSingle('${item.id}')">Descargar ${escapeHtml(item.filename)}</button>
+          </div>
+        `;
+      };
       el.modalMediaContainer.appendChild(img);
-    } else if (item.category === 'videos') {
+    } else if (fmt.isNativeVideo) {
       el.modalMediaContainer.innerHTML = '';
       const video = document.createElement('video');
       video.src = previewSrc;
@@ -1089,7 +1112,7 @@ async function openPreviewModal(attId) {
       video.autoplay = true;
       video.playsInline = true;
       el.modalMediaContainer.appendChild(video);
-    } else if (item.category === 'audio') {
+    } else if (fmt.isNativeAudio) {
       el.modalMediaContainer.innerHTML = `
         <div style="text-align: center;">
           <div style="font-size: 64px; margin-bottom: 20px;">🎵</div>
@@ -1097,11 +1120,11 @@ async function openPreviewModal(attId) {
         </div>
       `;
     } else {
-      const icon = getCategoryIcon(item.category, item.filename);
       el.modalMediaContainer.innerHTML = `
         <div style="text-align: center;">
-          <div style="font-size: 80px; margin-bottom: 16px;">${icon}</div>
-          <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">Archivo listo para descargar.</p>
+          <div style="font-size: 80px; margin-bottom: 16px;">${fmt.icon}</div>
+          <div style="display: inline-block; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 14px; margin-bottom: 12px; background: ${fmt.bg}; color: ${fmt.color}; border: 1px solid ${fmt.color};">${fmt.label}</div>
+          <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">Archivo listo para descargar y explorar.</p>
           <button class="btn-pudu-primary" onclick="handleDownloadSingle('${item.id}')">Descargar ${escapeHtml(item.filename)}</button>
         </div>
       `;
@@ -1182,7 +1205,7 @@ async function startScan() {
         state.allAttachments = [...state.allAttachments, ...newChunk];
         applyFiltersAndSort();
       },
-      500 // scan up to 500 messages
+      500
     );
 
     state.allAttachments = results;
@@ -1205,20 +1228,16 @@ async function startScan() {
 // ==========================================================================
 
 function initEvents() {
-  // 1-Click Hero Google Login Button
   if (el.btnHeroGoogleLogin) {
     el.btnHeroGoogleLogin.addEventListener('click', handleDirectGoogleLogin);
   }
 
-  // Logout button
   if (el.btnLogout) el.btnLogout.addEventListener('click', handleLogout);
 
-  // Rescan & Sync buttons
   if (el.btnRescan) el.btnRescan.addEventListener('click', startScan);
   if (el.btnSyncNow) el.btnSyncNow.addEventListener('click', startScan);
   if (el.btnScanEmpty) el.btnScanEmpty.addEventListener('click', startScan);
 
-  // Category tabs
   el.navItems.forEach(btn => {
     btn.addEventListener('click', () => {
       el.navItems.forEach(b => b.classList.remove('active'));
@@ -1231,7 +1250,6 @@ function initEvents() {
     });
   });
 
-  // Size preset filters
   el.sizeItems.forEach(btn => {
     btn.addEventListener('click', () => {
       el.sizeItems.forEach(b => b.classList.remove('active'));
@@ -1244,7 +1262,6 @@ function initEvents() {
     });
   });
 
-  // Live search
   let searchTimeout = null;
   el.searchInput.addEventListener('input', (e) => {
     const val = e.target.value;
@@ -1263,13 +1280,11 @@ function initEvents() {
     applyFiltersAndSort();
   });
 
-  // Sort selector
   el.sortBySelect.addEventListener('change', (e) => {
     state.sortBy = e.target.value;
     applyFiltersAndSort();
   });
 
-  // View switchers
   el.btnViewGrid.addEventListener('click', () => {
     state.viewMode = 'grid';
     el.btnViewGrid.classList.add('active');
@@ -1284,7 +1299,6 @@ function initEvents() {
     renderFeed(true);
   });
 
-  // Table header sorting
   document.querySelectorAll('.explorer-table th.sortable').forEach(th => {
     th.addEventListener('click', () => {
       const sortKey = th.dataset.sort;
@@ -1298,7 +1312,6 @@ function initEvents() {
     });
   });
 
-  // Select all checkbox
   const handleSelectAll = (checked) => {
     const visibleItems = state.filteredAttachments.slice(0, state.visibleCount);
     visibleItems.forEach(it => {
@@ -1311,7 +1324,6 @@ function initEvents() {
   el.selectAllCheckbox.addEventListener('change', (e) => handleSelectAll(e.target.checked));
   el.tableSelectAll.addEventListener('change', (e) => handleSelectAll(e.target.checked));
 
-  // Floating Action Bar buttons
   el.btnMoveSelectedToDevice.addEventListener('click', handleBulkMoveToDevice);
   el.btnDownloadSelectedZip.addEventListener('click', handleBulkDownloadZip);
   el.btnDeleteSelected.addEventListener('click', handleBulkDelete);
@@ -1320,7 +1332,6 @@ function initEvents() {
     renderFeed(false);
   });
 
-  // Lightbox navigation & shortcuts
   el.btnCloseModal.addEventListener('click', closePreviewModal);
   el.previewModal.addEventListener('click', (e) => {
     if (e.target === el.previewModal) closePreviewModal();
@@ -1340,7 +1351,6 @@ function initEvents() {
     }
   });
 
-  // Initialize Infinite Scroll Observer once
   initInfiniteScroll();
 }
 
@@ -1362,7 +1372,7 @@ async function init() {
 
   state.freedSpaceBytes = await window.puduStorage.getSetting('freed_space_bytes', 0);
 
-  // Pre-load all cached thumbnails from IndexedDB into memory (0ms instant render)
+  // Pre-load all cached thumbnails from IndexedDB into memory
   try {
     const savedThumbs = await window.puduStorage.getAllThumbnails();
     if (savedThumbs && savedThumbs.length > 0) {
@@ -1382,7 +1392,6 @@ async function init() {
     state.allAttachments = cached;
   }
 
-  // Check if already authenticated or prompt login
   if (window.puduGmailService.accessToken) {
     el.loginHeroScreen.classList.add('hidden');
     el.mainAppLayout.classList.remove('hidden');
