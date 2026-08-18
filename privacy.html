@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidad | Pudú Mail</title>
+  <meta name="description" content="Política de Privacidad de Pudú Mail. Conoce cómo protegemos tus datos de Gmail con procesamiento 100% del lado del cliente.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦌</text></svg>">
+  <style>
+    .legal-container {
+      max-width: 860px;
+      margin: 40px auto;
+      padding: 32px 24px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      color: var(--text-primary);
+      line-height: 1.7;
+    }
+    .legal-header {
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+    .legal-header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #2ecc71;
+      margin-bottom: 8px;
+    }
+    .legal-date {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .legal-section {
+      margin-bottom: 28px;
+    }
+    .legal-section h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    .legal-section p, .legal-section ul {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+    .legal-section ul {
+      padding-left: 20px;
+    }
+    .legal-section li {
+      margin-bottom: 6px;
+    }
+    .highlight-box {
+      background: rgba(46, 204, 113, 0.08);
+      border: 1px solid rgba(46, 204, 113, 0.3);
+      padding: 16px;
+      border-radius: var(--radius-md);
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    .btn-back-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      transition: all 0.2s ease;
+    }
+    .btn-back-home:hover {
+      border-color: #2ecc71;
+      color: #2ecc71;
+    }
+  </style>
+</head>
+<body class="pudu-theme">
+  <div class="airmail-ribbon"></div>
+
+  <div class="legal-container">
+    <a href="index.html" class="btn-back-home">&larr; Volver a Pudú Mail</a>
+
+    <div class="legal-header">
+      <h1>Política de Privacidad</h1>
+      <span class="legal-date">Última actualización: 18 de agosto de 2026</span>
+    </div>
+
+    <div class="legal-section">
+      <h2>1. Introducción</h2>
+      <p>
+        Bienvenido a <strong>Pudú Mail</strong> (accesible en <code>https://pudugmail.vercel.app</code>), una herramienta web diseñada para ayudarte a explorar, ordenar y gestionar los archivos adjuntos de tu cuenta de Gmail para liberar espacio de almacenamiento.
+      </p>
+      <p>
+        Nos tomamos tu privacidad con la máxima seriedad. Esta aplicación ha sido construida bajo la filosofía de <strong>Procesamiento 100% en el Dispositivo (Client-Side)</strong>. Tus correos electrónicos, adjuntos y datos personales nunca se envían a ningún servidor externo.
+      </p>
+    </div>
+
+    <div class="legal-section">
+      <h2>2. Declaración de Cumplimiento con Google API Services (Limited Use Disclosure)</h2>
+      <div class="highlight-box">
+        <strong>Google API Services User Data Policy Compliance:</strong><br>
+        <em>Pudú Mail's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" style="color: #2ecc71; text-decoration: underline;">Google API Services User Data Policy</a>, including the Limited Use requirements.</em>
+      </div>
+      <p>
+        Pudú Mail cumple estrictamente con los requisitos de Uso Limitado de Google para permisos restringidos de la API de Gmail.
+      </p>
+    </div>
+
+    <div class="legal-section">
+      <h2>3. Permisos de Google Solicitados y su Uso</h2>
+      <p>La aplicación solicita acceso a los siguientes permisos (OAuth Scopes) de Google:</p>
+      <ul>
+        <li>
+          <strong><code>https://www.googleapis.com/auth/gmail.readonly</code>:</strong> Utilizado exclusivamente en tu navegador para leer los encabezados y adjuntos de tus correos y permitirte ordenarlos por tamaño (fotos, videos, documentos).
+        </li>
+        <li>
+          <strong><code>https://www.googleapis.com/auth/gmail.modify</code>:</strong> Utilizado únicamente cuando haces clic explícito en "Borrar de Gmail" o "Mover al Dispositivo", para trasladar a la papelera de Gmail el correo específico que autorizaste eliminar.
+        </li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2>4. Almacenamiento y Seguridad de los Datos</h2>
+      <ul>
+        <li><strong>Sin Servidores Propios:</strong> La aplicación corre enteramente en tu navegador web. No poseemos servidores de base de datos ni registramos tus correos.</li>
+        <li><strong>Tokens de Autenticación:</strong> Tu token de acceso de Google se almacena únicamente en la memoria volátil de tu sesión de navegación y expira automáticamente.</li>
+        <li><strong>Almacenamiento Local (IndexedDB):</strong> Para permitir una navegación rápida y vistas previas instantáneas, la aplicación almacena localmente en la memoria de tu propio navegador las miniaturas y la lista de adjuntos escaneados. Puedes borrar estos datos en cualquier momento limpiando el historial o la caché de tu navegador.</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2>5. Política de Publicidad y No Comercialización</h2>
+      <ul>
+        <li><strong>Cero Venta de Datos:</strong> Nunca vendemos, alquilamos ni transferimos tus datos de Gmail a terceros.</li>
+        <li><strong>No Uso para Publicidad Personalizada:</strong> Tus datos de Gmail, correos y adjuntos <strong>JAMÁS</strong> se utilizan para segmentación publicitaria ni para alimentar modelos de inteligencia artificial o anuncios dirigidos.</li>
+        <li><strong>Anuncios Generales:</strong> En caso de mostrar publicidad general en el sitio web, esta se basará únicamente en el contexto general de la página web y nunca tendrá acceso a tus correos o archivos personales.</li>
+      </ul>
+    </div>
+
+    <div class="legal-section">
+      <h2>6. Control del Usuario y Revocación</h2>
+      <p>
+        Puedes revocar el acceso de Pudú Mail a tu cuenta de Google en cualquier momento desde la página de seguridad de tu cuenta de Google: <a href="https://myaccount.google.com/permissions" target="_blank" style="color: #2ecc71;">https://myaccount.google.com/permissions</a>.
+      </p>
+    </div>
+
+    <div class="legal-section">
+      <h2>7. Contacto del Desarrollador</h2>
+      <p>
+        Si tienes cualquier duda respecto a esta Política de Privacidad o al funcionamiento de la aplicación, puedes contactar al desarrollador en:
+      </p>
+      <p>
+        📧 Correo electrónico: <a href="mailto:marmotelio@gmail.com" style="color: #2ecc71; font-weight: 600;">marmotelio@gmail.com</a>
+      </p>
+    </div>
+
+    <div class="legal-section" style="border-top: 1px solid var(--border-subtle); padding-top: 20px; font-size: 12px; color: var(--text-muted);">
+      <p>
+        <strong>Aviso de Marca Comercial:</strong> Pudú Mail es un software independiente desarrollado por terceros y no está afiliado, respaldado ni patrocinado por Google LLC. Gmail™ y Google Workspace son marcas registradas de Google LLC.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
