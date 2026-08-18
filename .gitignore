@@ -1,0 +1,7 @@
+# Ignore local data and temporary cache
+data/
+.cache/
+__pycache__/
+*.pyc
+.env
+.DS_Store
