@@ -1,6 +1,6 @@
 /**
  * PUDÚ GMAIL - MAIN APPLICATION CONTROLLER
- * Gold-Standard Infinite Scroll Feed, Lazy Thumbnail Previews & Inline Audio Streaming
+ * High-Performance Thumbnail Engine, Persistent IndexedDB Thumbnails & Gold-Standard Infinite Scroll
  * 100% Client-Side for Vercel Free
  */
 
@@ -24,8 +24,8 @@ const state = {
   freedSpaceBytes: 0,
   isScanning: false,
 
-  // Blob & Thumbnail Cache
-  blobCache: new Map(), // attId -> ObjectURL / Poster DataURL
+  // Blob & Thumbnail Memory Cache
+  blobCache: new Map(), // attId -> DataURL / ObjectURL
   audioPlayers: new Map(), // attId -> Audio instance
   currentlyPlayingAudioId: null
 };
@@ -200,18 +200,22 @@ function showToast(title, message) {
 }
 
 // ==========================================================================
-// Lazy Thumbnail Loader with Concurrency Queue
+// Ultra-Fast Hardware-Accelerated Thumbnail Engine
 // ==========================================================================
 
 const thumbnailQueue = [];
+const queuedSet = new Set();
 let activeThumbnailDownloads = 0;
-const MAX_CONCURRENT_DOWNLOADS = 4;
+const MAX_CONCURRENT_DOWNLOADS = 6; // Fast pipelined parallel downloading
 
 function queueThumbnailDownload(item, containerEl) {
   if (state.blobCache.has(item.id)) {
     applyThumbnail(item.id, state.blobCache.get(item.id), containerEl, item.category);
     return;
   }
+
+  if (queuedSet.has(item.id)) return;
+  queuedSet.add(item.id);
 
   thumbnailQueue.push({ item, containerEl });
   processThumbnailQueue();
@@ -223,27 +227,108 @@ async function processThumbnailQueue() {
   }
 
   const { item, containerEl } = thumbnailQueue.shift();
+  queuedSet.delete(item.id);
   activeThumbnailDownloads++;
 
   try {
-    const blob = await window.puduGmailService.downloadAttachmentBlob(item);
-    const objectUrl = URL.createObjectURL(blob);
-    state.blobCache.set(item.id, objectUrl);
+    // 1. Check if thumbnail is already persisted in IndexedDB
+    const cachedDataUrl = await window.puduStorage.getThumbnail(item.id);
+    if (cachedDataUrl) {
+      state.blobCache.set(item.id, cachedDataUrl);
+      applyThumbnail(item.id, cachedDataUrl, containerEl, item.category);
+      activeThumbnailDownloads--;
+      processThumbnailQueue();
+      return;
+    }
 
-    if (item.category === 'videos') {
+    // 2. Fetch raw attachment blob from Gmail
+    const blob = await window.puduGmailService.downloadAttachmentBlob(item);
+
+    // 3. Generate lightweight compressed thumbnail
+    if (item.category === 'images') {
+      const thumbUrl = await generateFastImageThumbnail(blob);
+      state.blobCache.set(item.id, thumbUrl);
+      window.puduStorage.saveThumbnail(item.id, thumbUrl); // persist to IndexedDB
+      applyThumbnail(item.id, thumbUrl, containerEl, item.category);
+    } else if (item.category === 'videos') {
+      const objectUrl = URL.createObjectURL(blob);
       generateVideoPoster(objectUrl, (posterUrl) => {
         state.blobCache.set(item.id, posterUrl);
+        window.puduStorage.saveThumbnail(item.id, posterUrl); // persist to IndexedDB
         applyThumbnail(item.id, posterUrl, containerEl, item.category);
+        URL.revokeObjectURL(objectUrl);
       });
-    } else {
-      applyThumbnail(item.id, objectUrl, containerEl, item.category);
     }
   } catch (err) {
-    console.warn(`No se pudo cargar miniatura de ${item.filename}:`, err);
+    console.warn(`Error al generar miniatura de ${item.filename}:`, err);
   } finally {
     activeThumbnailDownloads--;
     processThumbnailQueue();
   }
+}
+
+/**
+ * Fast GPU/Hardware-accelerated downscaling with createImageBitmap
+ */
+async function generateFastImageThumbnail(blob) {
+  try {
+    let bitmap;
+    if (window.createImageBitmap) {
+      // Hardware-accelerated decode & resize off main thread
+      bitmap = await createImageBitmap(blob, { resizeWidth: 280, resizeQuality: 'low' });
+    } else {
+      const img = new Image();
+      img.src = URL.createObjectURL(blob);
+      await new Promise((res) => { img.onload = res; img.onerror = res; });
+      bitmap = img;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width || 280;
+    canvas.height = bitmap.height || 180;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    if (bitmap.close) bitmap.close();
+
+    // Export as lightweight WebP/JPEG (approx 8KB - 12KB)
+    try {
+      return canvas.toDataURL('image/webp', 0.65);
+    } catch (e) {
+      return canvas.toDataURL('image/jpeg', 0.65);
+    }
+  } catch (e) {
+    // Fallback to object URL
+    return URL.createObjectURL(blob);
+  }
+}
+
+function generateVideoPoster(videoUrl, callback) {
+  const video = document.createElement('video');
+  video.src = videoUrl;
+  video.crossOrigin = 'anonymous';
+  video.muted = true;
+  video.currentTime = 0.5;
+
+  video.onloadeddata = () => {
+    video.currentTime = 0.5;
+  };
+
+  video.onseeked = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.min(video.videoWidth || 280, 320);
+      canvas.height = Math.min(video.videoHeight || 180, 240);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+      callback(dataUrl);
+    } catch (e) {
+      callback(videoUrl);
+    }
+  };
+
+  video.onerror = () => callback(videoUrl);
 }
 
 function applyThumbnail(itemId, srcUrl, containerEl, category) {
@@ -271,35 +356,7 @@ function applyThumbnail(itemId, srcUrl, containerEl, category) {
   }
 }
 
-function generateVideoPoster(videoUrl, callback) {
-  const video = document.createElement('video');
-  video.src = videoUrl;
-  video.crossOrigin = 'anonymous';
-  video.muted = true;
-  video.currentTime = 0.5;
-
-  video.onloadeddata = () => {
-    video.currentTime = 0.5;
-  };
-
-  video.onseeked = () => {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.min(video.videoWidth || 320, 480);
-      canvas.height = Math.min(video.videoHeight || 240, 360);
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-      callback(dataUrl);
-    } catch (e) {
-      callback(videoUrl);
-    }
-  };
-
-  video.onerror = () => callback(videoUrl);
-}
-
-// Single instance of viewport observer for thumbnails
+// Single instance of viewport observer for thumbnails with pre-fetching margin
 const cardIntersectionObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
@@ -319,7 +376,7 @@ const cardIntersectionObserver = new IntersectionObserver((entries) => {
   });
 }, {
   root: null,
-  rootMargin: '250px 0px',
+  rootMargin: '350px 0px', // Pre-fetch thumbnails 350px ahead of viewport for instant appearance
   threshold: 0.01
 });
 
@@ -1013,10 +1070,9 @@ async function openPreviewModal(attId) {
 
   try {
     let previewSrc = state.blobCache.get(item.id);
-    if (!previewSrc) {
+    if (!previewSrc || previewSrc.startsWith('data:image/')) {
       const blob = await window.puduGmailService.downloadAttachmentBlob(item);
       previewSrc = URL.createObjectURL(blob);
-      state.blobCache.set(item.id, previewSrc);
     }
 
     if (item.category === 'images') {
@@ -1126,7 +1182,7 @@ async function startScan() {
         state.allAttachments = [...state.allAttachments, ...newChunk];
         applyFiltersAndSort();
       },
-      400 // scan up to 400 messages
+      500 // scan up to 500 messages
     );
 
     state.allAttachments = results;
@@ -1305,6 +1361,20 @@ async function init() {
   initEvents();
 
   state.freedSpaceBytes = await window.puduStorage.getSetting('freed_space_bytes', 0);
+
+  // Pre-load all cached thumbnails from IndexedDB into memory (0ms instant render)
+  try {
+    const savedThumbs = await window.puduStorage.getAllThumbnails();
+    if (savedThumbs && savedThumbs.length > 0) {
+      savedThumbs.forEach(t => {
+        if (t && t.id && t.dataUrl) {
+          state.blobCache.set(t.id, t.dataUrl);
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Error pre-loading thumbnails:', e);
+  }
 
   // Load cached attachments if any
   const cached = await window.puduStorage.getAllAttachments();

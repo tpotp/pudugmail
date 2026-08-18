@@ -280,13 +280,21 @@ class GmailService {
 
     const data = await res.json();
     const base64Data = data.data.replace(/-/g, '+').replace(/_/g, '/');
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+
+    // High performance native C++ browser decoding
+    try {
+      const dataUri = `data:${att.content_type || 'application/octet-stream'};base64,${base64Data}`;
+      const blobRes = await fetch(dataUri);
+      return await blobRes.blob();
+    } catch (e) {
+      const binaryStr = atob(base64Data);
+      const len = binaryStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      return new Blob([bytes], { type: att.content_type });
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: att.content_type });
   }
 
   async moveMessageToTrash(msgId) {

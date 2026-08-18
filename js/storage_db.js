@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'PuduGmailDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 class PuduStorage {
   constructor() {
@@ -27,6 +27,11 @@ class PuduStorage {
           attStore.createIndex('date', 'date', { unique: false });
           attStore.createIndex('msg_id', 'msg_id', { unique: false });
           attStore.createIndex('status', 'status', { unique: false }); // 'active' | 'trashed' | 'moved'
+        }
+
+        // Thumbnails store for instant offline/re-render loading (10KB WebP images)
+        if (!db.objectStoreNames.contains('thumbnails')) {
+          db.createObjectStore('thumbnails', { keyPath: 'id' });
         }
 
         // Settings & stats store
@@ -81,6 +86,50 @@ class PuduStorage {
     });
   }
 
+  async saveThumbnail(id, dataUrl) {
+    if (!id || !dataUrl) return;
+    try {
+      const db = await this.ensureDb();
+      return new Promise((resolve) => {
+        const tx = db.transaction('thumbnails', 'readwrite');
+        tx.objectStore('thumbnails').put({ id, dataUrl, createdAt: Date.now() });
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async getThumbnail(id) {
+    if (!id) return null;
+    try {
+      const db = await this.ensureDb();
+      return new Promise((resolve) => {
+        const tx = db.transaction('thumbnails', 'readonly');
+        const req = tx.objectStore('thumbnails').get(id);
+        req.onsuccess = () => resolve(req.result ? req.result.dataUrl : null);
+        req.onerror = () => resolve(null);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async getAllThumbnails() {
+    try {
+      const db = await this.ensureDb();
+      return new Promise((resolve) => {
+        const tx = db.transaction('thumbnails', 'readonly');
+        const req = tx.objectStore('thumbnails').getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
   async updateAttachmentStatus(id, newStatus) {
     const db = await this.ensureDb();
     return new Promise((resolve, reject) => {
@@ -105,20 +154,20 @@ class PuduStorage {
   async removeAttachment(id) {
     const db = await this.ensureDb();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction('attachments', 'readwrite');
-      const store = tx.objectStore('attachments');
-      const req = store.delete(id);
-
-      req.onsuccess = () => resolve(true);
-      req.onerror = (e) => reject(e.target.error);
+      const tx = db.transaction(['attachments', 'thumbnails'], 'readwrite');
+      tx.objectStore('attachments').delete(id);
+      tx.objectStore('thumbnails').delete(id);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = (e) => reject(e.target.error);
     });
   }
 
   async clearAll() {
     const db = await this.ensureDb();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(['attachments', 'settings'], 'readwrite');
+      const tx = db.transaction(['attachments', 'thumbnails', 'settings'], 'readwrite');
       tx.objectStore('attachments').clear();
+      tx.objectStore('thumbnails').clear();
       tx.objectStore('settings').clear();
       tx.oncomplete = () => resolve(true);
       tx.onerror = (e) => reject(e.target.error);
