@@ -1,6 +1,7 @@
 /**
  * PUDÚ GMAIL - MAIN APPLICATION CONTROLLER
- * Zero-backend Client Application for Vercel Free
+ * Infinite Scroll Instagram Feed, Lazy Thumbnail Previews & Inline Audio Streaming
+ * 100% Client-Side for Vercel Free
  */
 
 const state = {
@@ -9,15 +10,23 @@ const state = {
   search: '',
   sortBy: 'size_desc',
   viewMode: 'grid', // 'grid' | 'table'
-  page: 1,
-  pageSize: 40,
-  totalPages: 1,
+
+  // Infinite Scroll State
+  visibleCount: 24,
+  batchSize: 20,
+  isLoadingMore: false,
+
   allAttachments: [],
   filteredAttachments: [],
   selectedIds: new Set(),
   currentModalIndex: -1,
   freedSpaceBytes: 0,
-  isScanning: false
+  isScanning: false,
+
+  // Blob & Thumbnail Cache
+  blobCache: new Map(), // attId -> Blob / ObjectURL
+  audioPlayers: new Map(), // attId -> Audio object
+  currentlyPlayingAudioId: null
 };
 
 // DOM Elements
@@ -27,10 +36,6 @@ const el = {
   mainAppLayout: document.getElementById('mainAppLayout'),
   btnHeroGoogleLogin: document.getElementById('btnHeroGoogleLogin'),
   heroErrorAlert: document.getElementById('heroErrorAlert'),
-  btnToggleAdminConfig: document.getElementById('btnToggleAdminConfig'),
-  adminConfigBox: document.getElementById('adminConfigBox'),
-  inputAdminClientId: document.getElementById('inputAdminClientId'),
-  btnSaveAdminClientId: document.getElementById('btnSaveAdminClientId'),
 
   // Navigation & Filters
   navItems: document.querySelectorAll('.nav-item[data-category]'),
@@ -43,6 +48,7 @@ const el = {
   breadcrumbCategory: document.getElementById('breadcrumbCategory'),
 
   // Views & Containers
+  explorerBody: document.querySelector('.explorer-body'),
   attachmentsGrid: document.getElementById('attachmentsGrid'),
   attachmentsTableContainer: document.getElementById('attachmentsTableContainer'),
   attachmentsTableBody: document.getElementById('attachmentsTableBody'),
@@ -112,11 +118,9 @@ const el = {
   toastTitle: document.getElementById('toastTitle'),
   toastMessage: document.getElementById('toastMessage'),
 
-  // Pagination
-  paginationBar: document.getElementById('paginationBar'),
-  btnPrevPage: document.getElementById('btnPrevPage'),
-  btnNextPage: document.getElementById('btnNextPage'),
-  pageInfoText: document.getElementById('pageInfoText')
+  // Infinite Scroll Sentinel
+  infiniteSentinel: null,
+  infiniteLoaderSpinner: null
 };
 
 // ==========================================================================
@@ -194,6 +198,130 @@ function showToast(title, message) {
 }
 
 // ==========================================================================
+// Lazy Thumbnail Loader with Concurrency Queue
+// ==========================================================================
+
+const thumbnailQueue = [];
+let activeThumbnailDownloads = 0;
+const MAX_CONCURRENT_DOWNLOADS = 4;
+
+function queueThumbnailDownload(item, containerEl) {
+  if (state.blobCache.has(item.id)) {
+    applyThumbnail(item.id, state.blobCache.get(item.id), containerEl, item.category);
+    return;
+  }
+
+  thumbnailQueue.push({ item, containerEl });
+  processThumbnailQueue();
+}
+
+async function processThumbnailQueue() {
+  if (activeThumbnailDownloads >= MAX_CONCURRENT_DOWNLOADS || thumbnailQueue.length === 0) {
+    return;
+  }
+
+  const { item, containerEl } = thumbnailQueue.shift();
+  activeThumbnailDownloads++;
+
+  try {
+    const blob = await window.puduGmailService.downloadAttachmentBlob(item);
+    const objectUrl = URL.createObjectURL(blob);
+    state.blobCache.set(item.id, objectUrl);
+
+    if (item.category === 'videos') {
+      generateVideoPoster(objectUrl, (posterUrl) => {
+        state.blobCache.set(item.id, posterUrl);
+        applyThumbnail(item.id, posterUrl, containerEl, item.category);
+      });
+    } else {
+      applyThumbnail(item.id, objectUrl, containerEl, item.category);
+    }
+  } catch (err) {
+    console.warn(`No se pudo cargar miniatura de ${item.filename}:`, err);
+  } finally {
+    activeThumbnailDownloads--;
+    processThumbnailQueue();
+  }
+}
+
+function applyThumbnail(itemId, srcUrl, containerEl, category) {
+  if (!containerEl || !document.body.contains(containerEl)) return;
+
+  if (category === 'images' || category === 'videos') {
+    containerEl.innerHTML = '';
+    const img = document.createElement('img');
+    img.className = 'card-img-preview fade-in';
+    img.src = srcUrl;
+    img.alt = '';
+    img.loading = 'lazy';
+    containerEl.appendChild(img);
+
+    if (category === 'videos') {
+      const overlay = document.createElement('div');
+      overlay.className = 'card-video-overlay';
+      overlay.innerHTML = `
+        <div class="play-btn-circle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        </div>
+      `;
+      containerEl.appendChild(overlay);
+    }
+  }
+}
+
+function generateVideoPoster(videoUrl, callback) {
+  const video = document.createElement('video');
+  video.src = videoUrl;
+  video.crossOrigin = 'anonymous';
+  video.muted = true;
+  video.currentTime = 0.5;
+
+  video.onloadeddata = () => {
+    video.currentTime = 0.5;
+  };
+
+  video.onseeked = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.min(video.videoWidth || 320, 480);
+      canvas.height = Math.min(video.videoHeight || 240, 360);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      callback(dataUrl);
+    } catch (e) {
+      callback(videoUrl);
+    }
+  };
+
+  video.onerror = () => callback(videoUrl);
+}
+
+// Intersection Observer for viewport-triggered lazy downloading
+const cardIntersectionObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const card = entry.target;
+      const itemId = card.dataset.id;
+      const category = card.dataset.category;
+      const previewWrapper = card.querySelector('.card-preview-wrapper');
+
+      if ((category === 'images' || category === 'videos') && previewWrapper) {
+        const item = state.allAttachments.find(x => x.id === itemId);
+        if (item) {
+          queueThumbnailDownload(item, previewWrapper);
+        }
+      }
+      cardIntersectionObserver.unobserve(card);
+    }
+  });
+}, {
+  root: null,
+  rootMargin: '200px 0px',
+  threshold: 0.01
+});
+
+// ==========================================================================
 // Filtering, Sorting & Stats Calculation
 // ==========================================================================
 
@@ -236,10 +364,9 @@ function applyFiltersAndSort() {
   });
 
   state.filteredAttachments = list;
-  state.totalPages = Math.max(1, Math.ceil(list.length / state.pageSize));
-  if (state.page > state.totalPages) state.page = 1;
+  state.visibleCount = 24; // Reset to initial batch for infinite scroll
 
-  renderView();
+  renderFeed(true);
   updateSidebarStats();
 }
 
@@ -291,10 +418,10 @@ function updateSidebarStats() {
 }
 
 // ==========================================================================
-// Rendering
+// Rendering: Infinite Feed
 // ==========================================================================
 
-function renderView() {
+function renderFeed(isReset = false) {
   const total = state.filteredAttachments.length;
   el.itemsCountSummary.textContent = `${total.toLocaleString()} ${total === 1 ? 'adjunto' : 'adjuntos'}`;
 
@@ -302,6 +429,7 @@ function renderView() {
     el.emptyState.classList.remove('hidden');
     el.attachmentsGrid.classList.add('hidden');
     el.attachmentsTableContainer.classList.add('hidden');
+    removeInfiniteSentinel();
     if (state.search) {
       el.emptyStateText.textContent = `No se encontraron adjuntos que coincidan con "${state.search}".`;
     } else if (state.category !== 'all') {
@@ -310,34 +438,39 @@ function renderView() {
       el.emptyStateText.textContent = 'No se encontraron adjuntos en tu bandeja de Gmail.';
     }
     updateSelectionUI();
-    updatePaginationUI();
     return;
   }
 
   el.emptyState.classList.add('hidden');
 
-  const startIdx = (state.page - 1) * state.pageSize;
-  const pageItems = state.filteredAttachments.slice(startIdx, startIdx + state.pageSize);
+  const visibleItems = state.filteredAttachments.slice(0, state.visibleCount);
 
   if (state.viewMode === 'grid') {
-    renderGrid(pageItems);
+    renderGrid(visibleItems, isReset);
     el.attachmentsGrid.classList.remove('hidden');
     el.attachmentsTableContainer.classList.add('hidden');
   } else {
-    renderTable(pageItems);
+    renderTable(visibleItems, isReset);
     el.attachmentsTableContainer.classList.remove('hidden');
     el.attachmentsGrid.classList.add('hidden');
   }
 
+  setupInfiniteSentinel();
   updateSelectionUI();
-  updatePaginationUI();
 }
 
-function renderGrid(items) {
-  el.attachmentsGrid.innerHTML = '';
+function renderGrid(items, isReset) {
+  if (isReset) {
+    el.attachmentsGrid.innerHTML = '';
+  }
+
+  // Identify which items need to be appended
+  const currentRenderedCount = isReset ? 0 : el.attachmentsGrid.querySelectorAll('.attachment-card').length;
+  const itemsToAppend = items.slice(currentRenderedCount);
+
   const fragment = document.createDocumentFragment();
 
-  items.forEach((item) => {
+  itemsToAppend.forEach((item) => {
     const card = document.createElement('div');
     const isHuge = item.size_bytes >= 26214400; // >= 25 MB
     const isLarge = item.size_bytes >= 10485760 && item.size_bytes < 26214400; // 10-25 MB
@@ -345,28 +478,43 @@ function renderGrid(items) {
 
     card.className = `attachment-card ${isHuge ? 'huge-file' : ''} ${isSelected ? 'selected' : ''}`;
     card.dataset.id = item.id;
+    card.dataset.category = item.category;
 
     let badgeClass = '';
     if (isHuge) badgeClass = 'badge-huge';
     else if (isLarge) badgeClass = 'badge-large';
 
     const gmailUrl = getGmailSearchUrl(item);
-    const icon = getCategoryIcon(item.category, item.filename);
 
     let previewContent = '';
-    if (item.category === 'images' && (item.preview_url || item.thumbnail_url)) {
-      previewContent = `<img class="card-img-preview" src="${item.preview_url || item.thumbnail_url}" alt="${escapeHtml(item.filename)}" loading="lazy">`;
-    } else if (item.category === 'videos') {
-      const poster = item.thumbnail_url ? `<img class="card-img-preview" src="${item.thumbnail_url}" alt="" loading="lazy">` : '';
+    const cachedUrl = state.blobCache.get(item.id);
+
+    if (item.category === 'images' || item.category === 'videos') {
+      if (cachedUrl) {
+        previewContent = `
+          <img class="card-img-preview" src="${cachedUrl}" alt="" loading="lazy">
+          ${item.category === 'videos' ? '<div class="card-video-overlay"><div class="play-btn-circle"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></div></div>' : ''}
+        `;
+      } else {
+        // Placeholder with smooth shimmer
+        const icon = item.category === 'images' ? '🖼️' : '🎬';
+        previewContent = `<div class="card-loading-shimmer"><span class="card-icon-fallback">${icon}</span></div>`;
+      }
+    } else if (item.category === 'audio') {
       previewContent = `
-        ${poster}
-        <div class="card-video-overlay">
-          <div class="play-btn-circle">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <div class="card-audio-preview" onclick="event.stopPropagation()">
+          <div class="audio-pulse-circle" id="audioBtn_${item.id}" onclick="handleToggleInlineAudio('${item.id}')">
+            <svg class="icon-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <svg class="icon-pause hidden" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
           </div>
+          <div class="audio-wave-bars">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="audio-time-label" id="audioTime_${item.id}">0:00</div>
         </div>
       `;
     } else {
+      const icon = getCategoryIcon(item.category, item.filename);
       previewContent = `<span class="card-icon-fallback">${icon}</span>`;
     }
 
@@ -394,6 +542,11 @@ function renderGrid(items) {
     `;
 
     fragment.appendChild(card);
+
+    // Observe card for lazy thumbnail loading
+    if ((item.category === 'images' || item.category === 'videos') && !cachedUrl) {
+      cardIntersectionObserver.observe(card);
+    }
   });
 
   el.attachmentsGrid.appendChild(fragment);
@@ -411,11 +564,17 @@ function renderGrid(items) {
   });
 }
 
-function renderTable(items) {
-  el.attachmentsTableBody.innerHTML = '';
+function renderTable(items, isReset) {
+  if (isReset) {
+    el.attachmentsTableBody.innerHTML = '';
+  }
+
+  const currentRenderedCount = isReset ? 0 : el.attachmentsTableBody.querySelectorAll('tr').length;
+  const itemsToAppend = items.slice(currentRenderedCount);
+
   const fragment = document.createDocumentFragment();
 
-  items.forEach((item) => {
+  itemsToAppend.forEach((item) => {
     const row = document.createElement('tr');
     const isSelected = state.selectedIds.has(item.id);
     if (isSelected) row.classList.add('selected');
@@ -424,9 +583,10 @@ function renderTable(items) {
     const gmailUrl = getGmailSearchUrl(item);
     const icon = getCategoryIcon(item.category, item.filename);
 
+    const cachedUrl = state.blobCache.get(item.id);
     let thumbHtml = `<span style="font-size: 20px;">${icon}</span>`;
-    if (item.category === 'images' && (item.preview_url || item.thumbnail_url)) {
-      thumbHtml = `<img class="table-thumb" src="${item.preview_url || item.thumbnail_url}" alt="" loading="lazy">`;
+    if (item.category === 'images' && cachedUrl) {
+      thumbHtml = `<img class="table-thumb" src="${cachedUrl}" alt="" loading="lazy">`;
     }
 
     row.innerHTML = `
@@ -464,6 +624,165 @@ function renderTable(items) {
   });
 }
 
+// ==========================================================================
+// Infinite Scroll Sentinel & Intersection Observer (Instagram Feed Style)
+// ==========================================================================
+
+let infiniteScrollObserver = null;
+
+function setupInfiniteSentinel() {
+  removeInfiniteSentinel();
+
+  if (state.visibleCount >= state.filteredAttachments.length) {
+    return; // All items loaded
+  }
+
+  const sentinel = document.createElement('div');
+  sentinel.id = 'infiniteSentinel';
+  sentinel.className = 'infinite-scroll-sentinel';
+  sentinel.innerHTML = `
+    <div class="sentinel-loader">
+      <span class="pudu-loader-icon">🦌💨</span>
+      <span>Cargando más archivos...</span>
+    </div>
+  `;
+
+  el.explorerBody.appendChild(sentinel);
+  el.infiniteSentinel = sentinel;
+
+  if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
+
+  infiniteScrollObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !state.isLoadingMore) {
+      loadMoreItems();
+    }
+  }, {
+    root: el.explorerBody,
+    rootMargin: '300px 0px',
+    threshold: 0.05
+  });
+
+  infiniteScrollObserver.observe(sentinel);
+}
+
+function removeInfiniteSentinel() {
+  if (el.infiniteSentinel && el.infiniteSentinel.parentNode) {
+    el.infiniteSentinel.parentNode.removeChild(el.infiniteSentinel);
+    el.infiniteSentinel = null;
+  }
+}
+
+function loadMoreItems() {
+  if (state.visibleCount >= state.filteredAttachments.length) {
+    removeInfiniteSentinel();
+    return;
+  }
+
+  state.isLoadingMore = true;
+  state.visibleCount += state.batchSize;
+
+  setTimeout(() => {
+    renderFeed(false);
+    state.isLoadingMore = false;
+  }, 100);
+}
+
+// ==========================================================================
+// Inline Audio Streaming / Preview Controller
+// ==========================================================================
+
+async function handleToggleInlineAudio(attId) {
+  const item = state.allAttachments.find(x => x.id === attId);
+  if (!item) return;
+
+  const btnEl = document.getElementById(`audioBtn_${attId}`);
+  const timeEl = document.getElementById(`audioTime_${attId}`);
+  const card = btnEl ? btnEl.closest('.attachment-card') : null;
+
+  // If already playing this audio, toggle pause
+  if (state.currentlyPlayingAudioId === attId) {
+    const player = state.audioPlayers.get(attId);
+    if (player) {
+      if (player.paused) {
+        player.play();
+        setAudioCardPlayingState(attId, true);
+      } else {
+        player.pause();
+        setAudioCardPlayingState(attId, false);
+      }
+    }
+    return;
+  }
+
+  // Stop any other currently playing audio
+  if (state.currentlyPlayingAudioId) {
+    const prevPlayer = state.audioPlayers.get(state.currentlyPlayingAudioId);
+    if (prevPlayer) {
+      prevPlayer.pause();
+      setAudioCardPlayingState(state.currentlyPlayingAudioId, false);
+    }
+  }
+
+  // Indicate loading state
+  if (btnEl) btnEl.classList.add('loading');
+
+  try {
+    let audioUrl = state.blobCache.get(attId);
+    if (!audioUrl) {
+      const blob = await window.puduGmailService.downloadAttachmentBlob(item);
+      audioUrl = URL.createObjectURL(blob);
+      state.blobCache.set(attId, audioUrl);
+    }
+
+    let player = state.audioPlayers.get(attId);
+    if (!player) {
+      player = new Audio(audioUrl);
+      state.audioPlayers.set(attId, player);
+
+      player.ontimeupdate = () => {
+        if (timeEl) {
+          const mins = Math.floor(player.currentTime / 60);
+          const secs = Math.floor(player.currentTime % 60).toString().padStart(2, '0');
+          timeEl.textContent = `${mins}:${secs}`;
+        }
+      };
+
+      player.onended = () => {
+        setAudioCardPlayingState(attId, false);
+        state.currentlyPlayingAudioId = null;
+        if (timeEl) timeEl.textContent = '0:00';
+      };
+    }
+
+    await player.play();
+    state.currentlyPlayingAudioId = attId;
+    if (btnEl) btnEl.classList.remove('loading');
+    setAudioCardPlayingState(attId, true);
+  } catch (err) {
+    if (btnEl) btnEl.classList.remove('loading');
+    alert(`No se pudo reproducir audio: ${err.message}`);
+  }
+}
+
+function setAudioCardPlayingState(attId, isPlaying) {
+  const btnEl = document.getElementById(`audioBtn_${attId}`);
+  const card = btnEl ? btnEl.closest('.attachment-card') : null;
+  if (!btnEl) return;
+
+  const iconPlay = btnEl.querySelector('.icon-play');
+  const iconPause = btnEl.querySelector('.icon-pause');
+
+  if (isPlaying) {
+    if (iconPlay) iconPlay.classList.add('hidden');
+    if (iconPause) iconPause.classList.remove('hidden');
+    if (card) card.classList.add('audio-playing');
+  } else {
+    if (iconPlay) iconPlay.classList.remove('hidden');
+    if (iconPause) iconPause.classList.add('hidden');
+    if (card) card.classList.remove('audio-playing');
+  }
+}
+
 function updateSelectionUI() {
   const count = state.selectedIds.size;
   if (count > 0) {
@@ -479,17 +798,10 @@ function updateSelectionUI() {
     el.floatingActionBar.classList.add('hidden');
   }
 
-  const startIdx = (state.page - 1) * state.pageSize;
-  const pageItems = state.filteredAttachments.slice(startIdx, startIdx + state.pageSize);
-  const allSelected = pageItems.length > 0 && pageItems.every(it => state.selectedIds.has(it.id));
+  const allVisible = state.filteredAttachments.slice(0, state.visibleCount);
+  const allSelected = allVisible.length > 0 && allVisible.every(it => state.selectedIds.has(it.id));
   el.selectAllCheckbox.checked = allSelected;
   el.tableSelectAll.checked = allSelected;
-}
-
-function updatePaginationUI() {
-  el.pageInfoText.textContent = `Página ${state.page} de ${state.totalPages || 1}`;
-  el.btnPrevPage.disabled = state.page <= 1;
-  el.btnNextPage.disabled = state.page >= state.totalPages;
 }
 
 // ==========================================================================
@@ -716,32 +1028,34 @@ async function openPreviewModal(attId) {
   el.previewModal.classList.remove('hidden');
 
   try {
+    let previewSrc = state.blobCache.get(item.id);
+    if (!previewSrc) {
+      const blob = await window.puduGmailService.downloadAttachmentBlob(item);
+      previewSrc = URL.createObjectURL(blob);
+      state.blobCache.set(item.id, previewSrc);
+    }
+
     if (item.category === 'images') {
-      let previewSrc = item.preview_url;
-      if (!previewSrc) {
-        const blob = await window.puduGmailService.downloadAttachmentBlob(item);
-        previewSrc = URL.createObjectURL(blob);
-        item.preview_url = previewSrc;
-      }
       el.modalMediaContainer.innerHTML = '';
       const img = document.createElement('img');
       img.src = previewSrc;
       img.alt = item.filename;
       el.modalMediaContainer.appendChild(img);
     } else if (item.category === 'videos') {
-      let videoSrc = item.preview_url;
-      if (!videoSrc) {
-        const blob = await window.puduGmailService.downloadAttachmentBlob(item);
-        videoSrc = URL.createObjectURL(blob);
-        item.preview_url = videoSrc;
-      }
       el.modalMediaContainer.innerHTML = '';
       const video = document.createElement('video');
-      video.src = videoSrc;
+      video.src = previewSrc;
       video.controls = true;
       video.autoplay = true;
       video.playsInline = true;
       el.modalMediaContainer.appendChild(video);
+    } else if (item.category === 'audio') {
+      el.modalMediaContainer.innerHTML = `
+        <div style="text-align: center;">
+          <div style="font-size: 64px; margin-bottom: 20px;">🎵</div>
+          <audio controls autoplay src="${previewSrc}" style="width: 320px;"></audio>
+        </div>
+      `;
     } else {
       const icon = getCategoryIcon(item.category, item.filename);
       el.modalMediaContainer.innerHTML = `
@@ -781,9 +1095,6 @@ function handleDirectGoogleLogin() {
     } else {
       if (res.error === 'GIS_NOT_LOADED') {
         el.heroErrorAlert.textContent = 'Cargando servicios de Google... Por favor inténtalo de nuevo en 2 segundos.';
-      } else if (res.error === 'NO_CLIENT_ID') {
-        el.heroErrorAlert.innerHTML = 'Falta configurar el Client ID de OAuth en la aplicación. Abre <strong>⚙️ Configuración del Servidor OAuth</strong> abajo.';
-        el.adminConfigBox.classList.remove('hidden');
       } else {
         el.heroErrorAlert.textContent = `Error al conectar con Google: ${res.error || 'Verifica tu conexión'}`;
       }
@@ -832,7 +1143,7 @@ async function startScan() {
         state.allAttachments = [...state.allAttachments, ...newChunk];
         applyFiltersAndSort();
       },
-      300 // scan up to 300 messages
+      400 // scan up to 400 messages
     );
 
     state.allAttachments = results;
@@ -860,24 +1171,6 @@ function initEvents() {
     el.btnHeroGoogleLogin.addEventListener('click', handleDirectGoogleLogin);
   }
 
-  // Admin Config Toggle & Save
-  if (el.btnToggleAdminConfig) {
-    el.btnToggleAdminConfig.addEventListener('click', () => {
-      el.adminConfigBox.classList.toggle('hidden');
-    });
-  }
-
-  if (el.btnSaveAdminClientId) {
-    el.btnSaveAdminClientId.addEventListener('click', () => {
-      const val = el.inputAdminClientId.value.trim();
-      if (val) {
-        window.puduGmailService.setClientId(val);
-        showToast('ID Guardado ⚙️', 'Client ID actualizado con éxito.');
-        el.heroErrorAlert.classList.add('hidden');
-      }
-    });
-  }
-
   // Logout button
   if (el.btnLogout) el.btnLogout.addEventListener('click', handleLogout);
 
@@ -894,7 +1187,6 @@ function initEvents() {
       btn.classList.add('active');
       state.category = btn.dataset.category;
       state.sizePreset = null;
-      state.page = 1;
       el.breadcrumbCategory.textContent = getCategoryLabel(state.category);
       applyFiltersAndSort();
     });
@@ -908,7 +1200,6 @@ function initEvents() {
       btn.classList.add('active');
       state.sizePreset = btn.dataset.size;
       state.category = 'all';
-      state.page = 1;
       el.breadcrumbCategory.textContent = `Tamaño: ${btn.querySelector('.nav-label').textContent}`;
       applyFiltersAndSort();
     });
@@ -922,7 +1213,6 @@ function initEvents() {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
       state.search = val;
-      state.page = 1;
       applyFiltersAndSort();
     }, 200);
   });
@@ -931,14 +1221,12 @@ function initEvents() {
     el.searchInput.value = '';
     el.btnClearSearch.classList.add('hidden');
     state.search = '';
-    state.page = 1;
     applyFiltersAndSort();
   });
 
   // Sort selector
   el.sortBySelect.addEventListener('change', (e) => {
     state.sortBy = e.target.value;
-    state.page = 1;
     applyFiltersAndSort();
   });
 
@@ -947,14 +1235,14 @@ function initEvents() {
     state.viewMode = 'grid';
     el.btnViewGrid.classList.add('active');
     el.btnViewTable.classList.remove('active');
-    renderView();
+    renderFeed(true);
   });
 
   el.btnViewTable.addEventListener('click', () => {
     state.viewMode = 'table';
     el.btnViewTable.classList.add('active');
     el.btnViewGrid.classList.remove('active');
-    renderView();
+    renderFeed(true);
   });
 
   // Table header sorting
@@ -966,29 +1254,19 @@ function initEvents() {
         el.sortBySelect.value = sortKey;
         document.querySelectorAll('.explorer-table th.sortable').forEach(t => t.classList.remove('active'));
         th.classList.add('active');
-        state.page = 1;
         applyFiltersAndSort();
       }
     });
   });
 
-  // Pagination
-  el.btnPrevPage.addEventListener('click', () => {
-    if (state.page > 1) { state.page--; renderView(); }
-  });
-  el.btnNextPage.addEventListener('click', () => {
-    if (state.page < state.totalPages) { state.page++; renderView(); }
-  });
-
   // Select all checkbox
   const handleSelectAll = (checked) => {
-    const startIdx = (state.page - 1) * state.pageSize;
-    const pageItems = state.filteredAttachments.slice(startIdx, startIdx + state.pageSize);
-    pageItems.forEach(it => {
+    const visibleItems = state.filteredAttachments.slice(0, state.visibleCount);
+    visibleItems.forEach(it => {
       if (checked) state.selectedIds.add(it.id);
       else state.selectedIds.delete(it.id);
     });
-    renderView();
+    renderFeed(false);
   };
 
   el.selectAllCheckbox.addEventListener('change', (e) => handleSelectAll(e.target.checked));
@@ -1000,7 +1278,7 @@ function initEvents() {
   el.btnDeleteSelected.addEventListener('click', handleBulkDelete);
   el.btnClearSelection.addEventListener('click', () => {
     state.selectedIds.clear();
-    renderView();
+    renderFeed(false);
   });
 
   // Lightbox navigation & shortcuts
@@ -1041,11 +1319,6 @@ async function init() {
   initEvents();
 
   state.freedSpaceBytes = await window.puduStorage.getSetting('freed_space_bytes', 0);
-
-  const currentClientId = window.puduGmailService.getClientId();
-  if (currentClientId && el.inputAdminClientId) {
-    el.inputAdminClientId.value = currentClientId;
-  }
 
   // Load cached attachments if any
   const cached = await window.puduStorage.getAllAttachments();
