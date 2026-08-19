@@ -54,7 +54,8 @@ body.pudu-theme {
   background-color: var(--bg-app);
   color: var(--text-primary);
   height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
@@ -86,7 +87,8 @@ body.pudu-theme {
 .login-hero-container {
   flex: 1;
   display: flex;
-  align-items: center;
+  min-height: 0;
+  align-items: flex-start;
   justify-content: center;
   padding: 24px;
   background: radial-gradient(circle at center, #1b2629 0%, #0d1214 100%);
@@ -107,6 +109,7 @@ body.pudu-theme {
   align-items: center;
   gap: 14px;
   animation: fadeIn 0.3s ease;
+  margin: auto 0;
 }
 
 .hero-pudu-box {
@@ -120,7 +123,7 @@ body.pudu-theme {
 }
 .hero-pudu-img { width: 100%; height: 100%; object-fit: cover; }
 
-.login-hero-card h2 {
+.login-hero-card h1 {
   font-size: 26px;
   font-weight: 800;
   color: #fff;
@@ -1625,5 +1628,4 @@ kbd { background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; f
 .purpose-card li {
   margin-bottom: 4px;
 }
-
 
