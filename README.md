@@ -1,8 +1,8 @@
-# 🦌✉️ Pudú Gmail (`pudugmail.vercel.app`)
+﻿# 🦌✉️ Pudu Gmail (`pudugmail.vercel.app`)
 
-**Pudú Gmail** es un explorador visual de adjuntos de Gmail 100% Client-Side (sin backend, ideal para el plan gratuito de Vercel), con estética postal chilena y la compañía de un tierno **Pudú bebé cartero**.
+**Pudu Gmail** es un explorador visual de adjuntos de Gmail 100% Client-Side (sin backend, ideal para el plan gratuito de Vercel), con estética postal chilena y la compañía de un tierno **Pudu bebé cartero**.
 
-![Pudú Cartero](assets/pudu_mascot.jpg)
+![Pudu Cartero](assets/pudu_mascot.jpg)
 
 ---
 
@@ -26,7 +26,7 @@
   - Previsualización en alta definición de imágenes con zoom.
   - Reproductor HTML5 integrado para ver clips de video y escuchar notas de voz sin salir de la app.
 - 🌿 **Estética Postal del Sur de Chile**:
-  - Ilustraciones de Pudúes bebés chilenos, sellos postales de la Patagonia y contador de espacio liberado.
+  - Ilustraciones de Pudues bebés chilenos, sellos postales de la Patagonia y contador de espacio liberado.
 - ⚡ **Modo Demostración Inmediato**:
   - Permite probar todas las funciones, descargas y vistas previas sin necesidad de iniciar sesión previamente.
 
@@ -34,7 +34,7 @@
 
 ## 🛠️ Tecnologías Utilizadas
 
-- **Frontend**: HTML5 Semántico, Vanilla CSS Moderno (Design System Postal Pudú), JavaScript ES6+.
+- **Frontend**: HTML5 Semántico, Vanilla CSS Moderno (Design System Postal Pudu), JavaScript ES6+.
 - **Almacenamiento Local**: `IndexedDB` para indexación y caché local de adjuntos.
 - **Compresión**: `JSZip` (100% cliente).
 - **Autenticación**: `Google Identity Services (GIS)` y `Gmail REST API`.

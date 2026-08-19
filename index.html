@@ -1,15 +1,38 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pudú Mail - Attachment Explorer</title>
-  <meta name="description" content="Pudú Mail - Attachment Explorer te ayuda a explorar, ordenar por tamaño y gestionar tus fotos, videos y adjuntos de Gmail para liberar espacio fácilmente.">
+  <title>Pudu Mail - Attachment Explorer</title>
+  <meta name="description" content="Pudu Mail - Attachment Explorer te ayuda a explorar, ordenar por tamaño y gestionar tus fotos, videos y adjuntos de Gmail para liberar espacio fácilmente.">
+  <meta name="application-name" content="Pudu Mail - Attachment Explorer">
+  <meta name="apple-mobile-web-app-title" content="Pudu Mail - Attachment Explorer">
   <meta name="google-site-verification" content="X44UONjThYxG4N56gQl8L9FGLAu95TPLV-yLn8dkp60" />
-  <meta property="og:title" content="Pudú Mail - Attachment Explorer" />
-  <meta property="og:site_name" content="Pudú Mail - Attachment Explorer" />
-  <meta property="og:description" content="Herramienta para explorar, ordenar y gestionar adjuntos de Gmail y liberar espacio de almacenamiento." />
+  
+  <!-- Open Graph / Brand Metadata -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Pudu Mail - Attachment Explorer" />
+  <meta property="og:site_name" content="Pudu Mail - Attachment Explorer" />
+  <meta property="og:description" content="Herramienta web para explorar, ordenar por tamaño y gestionar adjuntos de Gmail para liberar espacio de almacenamiento." />
   <meta property="og:url" content="https://pudugmail.vercel.app" />
+
+  <!-- Structured Data JSON-LD (Schema.org WebApplication for Google Verification) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Pudu Mail - Attachment Explorer",
+    "url": "https://pudugmail.vercel.app",
+    "description": "Herramienta web para explorar, ordenar y gestionar archivos adjuntos de Gmail para liberar espacio.",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "All",
+    "author": {
+      "@type": "Person",
+      "name": "Carlos",
+      "email": "carlossilcac@gmail.com"
+    }
+  }
+  </script>
 
   <!-- Google Fonts & Styles -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +55,7 @@
     <div class="sync-banner-content">
       <div class="pudu-walking-icon">🦌💨</div>
       <div class="sync-text-group">
-        <strong id="syncProgressTitle">El Pudú está buscando tus adjuntos...</strong>
+        <strong id="syncProgressTitle">Pudu está buscando tus adjuntos...</strong>
         <span id="syncProgressText">Conectando con Gmail...</span>
       </div>
       <div class="sync-progress-bar-container">
@@ -46,10 +69,10 @@
   <div id="loginHeroScreen" class="login-hero-container">
     <div class="login-hero-card">
       <div class="hero-pudu-box">
-        <img src="assets/pudu_mascot.jpg" alt="Pudú Cartero" class="hero-pudu-img">
+        <img src="assets/pudu_mascot.jpg" alt="Pudu Mascot" class="hero-pudu-img">
       </div>
       
-      <h1>Pudú Mail - Attachment Explorer</h1>
+      <h1>Pudu Mail - Attachment Explorer</h1>
       <span class="hero-badge">🇨🇱 HERRAMIENTA DE PRODUCTIVIDAD PARA GMAIL</span>
       
       <p class="hero-subtitle">
@@ -94,29 +117,35 @@
         </div>
       </div>
 
-      <!-- DETAILED APPLICATION PURPOSE SECTION (Google Verification Requirement) -->
+      <!-- DETAILED APPLICATION PURPOSE SECTION (Google OAuth Verification Compliance) -->
       <div class="app-purpose-section">
-        <h3>📋 Propósito y Funcionamiento de la Aplicación</h3>
+        <h3>📋 Application Purpose & Features / Propósito de la Aplicación</h3>
         
         <div class="purpose-card">
-          <strong>1. ¿Qué hace Pudú Mail - Attachment Explorer?</strong>
+          <strong>1. App Functionality / ¿Qué hace Pudu Mail - Attachment Explorer?</strong>
           <p>
-            Permite a los usuarios de Gmail visualizar y ordenar todos los archivos adjuntos de su bandeja de entrada (fotos, videos, audios, documentos y comprimidos) ordenados de mayor a menor tamaño para identificar rápidamente qué archivos están consumiendo el espacio de su cuenta.
+            Pudu Mail - Attachment Explorer is a web productivity tool that allows Gmail users to inspect, sort, and manage their email attachments (photos, videos, audio, PDF documents, and archives) ordered from largest to smallest, making it effortless to identify large files and free up Google Cloud storage space.
           </p>
         </div>
 
         <div class="purpose-card">
-          <strong>2. ¿Por qué solicitamos permisos de Google API?</strong>
+          <strong>2. Google API Permissions / Justificación de Permisos Solicitados</strong>
           <ul>
-            <li><strong><code>gmail.readonly</code>:</strong> Para escanear de forma local en tu navegador el tamaño de los adjuntos y mostrar vistas previas sin enviar ningún dato fuera de tu equipo.</li>
-            <li><strong><code>gmail.modify</code>:</strong> Para permitir al usuario trasladar a la papelera de Gmail exclusivamente aquellos correos específicos que decida eliminar o mover a su dispositivo.</li>
+            <li>
+              <strong><code>https://www.googleapis.com/auth/gmail.readonly</code>:</strong> 
+              Utilizado exclusivamente para consultar los metadatos y tamaño de los archivos adjuntos en tu bandeja de entrada y renderizar vistas previas locales. Los datos no se transfieren fuera del navegador.
+            </li>
+            <li>
+              <strong><code>https://www.googleapis.com/auth/gmail.modify</code>:</strong> 
+              Utilizado únicamente cuando el usuario solicita explícitamente trasladar un correo específico a la papelera de Gmail tras haber descargado su archivo adjunto.
+            </li>
           </ul>
         </div>
 
         <div class="purpose-card">
-          <strong>3. Seguridad y Privacidad Garantizada:</strong>
+          <strong>3. Data Protection & Limited Use / Privacidad y Seguridad</strong>
           <p>
-            Pudú Mail es 100% del lado del cliente (Client-Side). No poseemos servidores intermedios, no almacenamos tus correos y no utilizamos tus datos para ningún fin publicitario.
+            Esta aplicación opera 100% en el lado del cliente (Client-Side) en el navegador del usuario. No transferimos ni compartimos datos con terceros, no utilizamos servidores propios de almacenamiento y cumplimos estrictamente con la <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" style="color: #2ecc71; text-decoration: underline;">Política de Datos de Usuario de los Servicios de la API de Google</a>, incluidos los requisitos de Uso Limitado.
           </p>
         </div>
       </div>
@@ -124,14 +153,14 @@
       <!-- Mandatory Google Compliance Legal Footer -->
       <div class="hero-legal-footer">
         <div class="legal-links">
-          <a href="privacy.html" target="_blank">Política de Privacidad</a>
+          <a href="https://pudugmail.vercel.app/privacy.html" target="_blank">Política de Privacidad</a>
           <span>•</span>
-          <a href="terms.html" target="_blank">Términos de Servicio</a>
+          <a href="https://pudugmail.vercel.app/terms.html" target="_blank">Términos de Servicio</a>
           <span>•</span>
           <a href="mailto:carlossilcac@gmail.com">Contacto (carlossilcac@gmail.com)</a>
         </div>
         <p class="trademark-disclaimer">
-          Pudú Mail - Attachment Explorer es una aplicación independiente desarrollada por terceros y no está afiliada, respaldada ni patrocinada por Google LLC. Gmail™ es una marca registrada de Google LLC.
+          Pudu Mail - Attachment Explorer es una aplicación independiente desarrollada por terceros y no está afiliada, respaldada ni patrocinada por Google LLC. Gmail™ es una marca registrada de Google LLC.
         </p>
       </div>
     </div>
@@ -144,10 +173,10 @@
       <div class="sidebar-header">
         <div class="brand">
           <div class="brand-avatar-box">
-            <img src="assets/pudu_mascot.jpg" alt="Pudú Cartero" class="brand-pudu-img" onerror="this.outerHTML='<span class=\'fallback-avatar\'>🦌</span>'">
+            <img src="assets/pudu_mascot.jpg" alt="Pudu Cartero" class="brand-pudu-img" onerror="this.outerHTML='<span class=\'fallback-avatar\'>🦌</span>'">
           </div>
           <div class="brand-text">
-            <h2>Pudú Mail - Attachment Explorer</h2>
+            <h2>Pudu Mail - Attachment Explorer</h2>
             <span class="badge-chile">🇨🇱 PARA GMAIL</span>
           </div>
         </div>
@@ -280,7 +309,7 @@
           <!-- Breadcrumb Path Bar -->
           <div class="breadcrumb-bar">
             <span class="breadcrumb-root">
-              ✉️ Pudú Mail
+              ✉️ Pudu Mail
             </span>
             <span class="breadcrumb-sep">/</span>
             <span id="breadcrumbCategory" class="breadcrumb-curr">Todos los Adjuntos</span>
@@ -371,7 +400,7 @@
         <!-- EMPTY STATE -->
         <div id="emptyState" class="empty-state hidden">
           <div class="empty-pudu-box">
-            <img src="assets/pudu_mascot.jpg" alt="Pudú" class="empty-pudu-img">
+            <img src="assets/pudu_mascot.jpg" alt="Pudu" class="empty-pudu-img">
           </div>
           <h3>¡No hay adjuntos aquí!</h3>
           <p id="emptyStateText">No se encontraron archivos que coincidan con los filtros seleccionados o tu bandeja está limpia.</p>

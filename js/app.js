@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PUDÚ GMAIL - MAIN APPLICATION CONTROLLER
  * High-Performance Thumbnail Engine, 100+ Formats Detector & Gold-Standard Infinite Scroll
  * 100% Client-Side for Vercel Free
@@ -885,7 +885,7 @@ async function handleMoveToDevice(attId) {
     await window.puduStorage.setSetting('freed_space_bytes', state.freedSpaceBytes);
 
     showToast(
-      '¡Pudú Postal Feliz! 🦌🎉',
+      '¡Pudu Postal Feliz! 🦌🎉',
       `Descargaste "${att.filename}" y liberaste ${formatBytes(att.size_bytes)} en tu Gmail.`
     );
 
@@ -1189,7 +1189,7 @@ async function startScan() {
   state.isScanning = true;
 
   el.syncProgressBanner.classList.remove('hidden');
-  el.syncProgressTitle.textContent = 'El Pudú está buscando tus adjuntos...';
+  el.syncProgressTitle.textContent = 'El Pudu está buscando tus adjuntos...';
   el.syncProgressText.textContent = 'Iniciando escaneo...';
   el.syncProgressBar.style.width = '5%';
   el.syncPercentText.textContent = '5%';
