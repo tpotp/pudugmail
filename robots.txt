@@ -1,4 +1,4 @@
-User-agent: *
+﻿User-agent: *
 Allow: /
 
 User-agent: Googlebot
@@ -13,4 +13,4 @@ Allow: /
 User-agent: Mediapartners-Google
 Allow: /
 
-Sitemap: https://pudugmail.vercel.app/sitemap.xml
+Sitemap: https://pudumail.pp.ua/sitemap.xml

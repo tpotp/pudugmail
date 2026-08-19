@@ -1,4 +1,4 @@
-﻿# 🦌✉️ Pudu Gmail (`pudugmail.vercel.app`)
+﻿# 🦌✉️ Pudu Gmail (`pudumail.pp.ua`)
 
 **Pudu Gmail** es un explorador visual de adjuntos de Gmail 100% Client-Side (sin backend, ideal para el plan gratuito de Vercel), con estética postal chilena y la compañía de un tierno **Pudu bebé cartero**.
 
@@ -9,7 +9,7 @@
 ## ✨ Características Principales
 
 - 🚀 **100% Procesamiento en el Navegador (Zero Backend)**:
-  - Desplegable directamente en **Vercel Free** (`pudugmail.vercel.app`).
+  - Desplegable directamente en **Vercel Free** (`pudumail.pp.ua`).
   - Todo el procesamiento, generación de miniaturas y compresión ZIP ocurren de forma privada en el dispositivo del usuario.
 - ⚖️ **Orden por Tamaño (Mayor a Menor)**:
   - Encuentra al instante qué videos, fotos o archivos están copando los 15 GB de tu cuenta de Gmail.
@@ -38,7 +38,7 @@
 - **Almacenamiento Local**: `IndexedDB` para indexación y caché local de adjuntos.
 - **Compresión**: `JSZip` (100% cliente).
 - **Autenticación**: `Google Identity Services (GIS)` y `Gmail REST API`.
-- **Despliegue**: `Vercel` (`pudugmail.vercel.app`).
+- **Despliegue**: `Vercel` (`pudumail.pp.ua`).
 
 ---
 
@@ -46,5 +46,5 @@
 
 1. El repositorio está en GitHub: `tpotp/pudugmail`.
 2. En tu panel de [Vercel](https://vercel.com/new), importa el repositorio `tpotp/pudugmail`.
-3. Asigna el dominio deseado (ej: `pudugmail.vercel.app`).
+3. Asigna el dominio deseado (ej: `pudumail.pp.ua`).
 4. ¡Listo! Al ser un proyecto 100% estático, Vercel lo desplegará en segundos con costo $0.
