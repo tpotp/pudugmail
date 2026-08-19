@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -68,14 +68,14 @@
   <div id="loginHeroScreen" class="login-hero-container">
     <div class="login-hero-card">
       <div class="hero-pudu-box">
-        <img src="assets/pudu_mascot.jpg" alt="Pudu Mascot" class="hero-pudu-img">
+        <img src="assets/pudu_mascot.jpg" alt="Pudu Mail - Attachment Explorer" class="hero-pudu-img">
       </div>
       
       <h1>Pudu Mail - Attachment Explorer</h1>
-      <span class="hero-badge">🇨🇱 HERRAMIENTA DE PRODUCTIVIDAD PARA GMAIL</span>
+      <span class="hero-badge">🇨🇱 PRODUCTIVITY TOOL FOR GMAIL</span>
       
       <p class="hero-subtitle">
-        Herramienta web diseñada para ayudarte a explorar, ordenar por tamaño y gestionar los archivos adjuntos de tu cuenta de Gmail para liberar espacio de almacenamiento.
+        Pudu Mail - Attachment Explorer is a client-side productivity tool designed to help you inspect, sort by size, and manage Gmail attachments to free up Google storage space.
       </p>
 
       <!-- 1-CLICK DIRECT GOOGLE SIGN-IN BUTTON -->
@@ -87,13 +87,13 @@
             <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.97 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
             <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
           </svg>
-          <span>Conectar con Gmail</span>
+          <span>Conectar con Gmail / Sign in with Google</span>
         </button>
 
         <div id="heroErrorAlert" class="error-alert hidden"></div>
 
         <p class="hero-privacy-note">
-          🔒 <strong>100% Seguro y Privado:</strong> La app se ejecuta únicamente en tu navegador. Tus correos y archivos nunca pasan por servidores externos.
+          🔒 <strong>100% Client-Side & Private:</strong> Runs entirely in your browser. Email data and attachments never leave your device.
         </p>
       </div>
 
@@ -101,18 +101,18 @@
       <div class="hero-footer-features">
         <div class="hero-feature-item">
           <span>⚖️</span>
-          <strong>Mayor a Menor</strong>
-          <small>Videos y fotos pesadas primero</small>
+          <strong>Sort by Size</strong>
+          <small>Largest videos & files first</small>
         </div>
         <div class="hero-feature-item">
           <span>📥➡️🗑️</span>
-          <strong>Mover al PC</strong>
-          <small>Descarga y borra de Gmail</small>
+          <strong>Download & Trash</strong>
+          <small>Save to PC and free up space</small>
         </div>
         <div class="hero-feature-item">
           <span>📦</span>
-          <strong>Descarga ZIP</strong>
-          <small>Baja múltiples archivos juntos</small>
+          <strong>ZIP Export</strong>
+          <small>Batch download multiple files</small>
         </div>
       </div>
 
@@ -121,9 +121,9 @@
         <h3>📋 Application Purpose & Features / Propósito de la Aplicación</h3>
         
         <div class="purpose-card">
-          <strong>1. App Functionality / ¿Qué hace Pudu Mail - Attachment Explorer?</strong>
+          <strong>1. App Functionality & Purpose / ¿Qué hace Pudu Mail - Attachment Explorer?</strong>
           <p>
-            Pudu Mail - Attachment Explorer is a web productivity tool that allows Gmail users to inspect, sort, and manage their email attachments (photos, videos, audio, PDF documents, and archives) ordered from largest to smallest, making it effortless to identify large files and free up Google Cloud storage space.
+            <strong>Pudu Mail - Attachment Explorer</strong> is a web productivity tool that allows Gmail users to inspect, sort, and manage their email attachments (photos, videos, audio, PDF documents, and archives) ordered from largest to smallest, making it effortless to identify large files and free up Google Cloud storage space.
           </p>
         </div>
 
@@ -132,11 +132,11 @@
           <ul>
             <li>
               <strong><code>https://www.googleapis.com/auth/gmail.readonly</code>:</strong> 
-              Utilizado exclusivamente para consultar los metadatos y tamaño de los archivos adjuntos en tu bandeja de entrada y renderizar vistas previas locales. Los datos no se transfieren fuera del navegador.
+              Used strictly to read email attachment metadata, filenames, and file sizes to render local previews in the browser. No email body text or user data is sent to any external server.
             </li>
             <li>
               <strong><code>https://www.googleapis.com/auth/gmail.modify</code>:</strong> 
-              Utilizado únicamente cuando el usuario solicita explícitamente trasladar un correo específico a la papelera de Gmail tras haber descargado su archivo adjunto.
+              Used solely when the user explicitly requests to move a specific email containing downloaded attachments to the Gmail Trash to free storage space.
             </li>
           </ul>
         </div>
@@ -144,7 +144,7 @@
         <div class="purpose-card">
           <strong>3. Data Protection & Limited Use / Privacidad y Seguridad</strong>
           <p>
-            Esta aplicación opera 100% en el lado del cliente (Client-Side) en el navegador del usuario. No transferimos ni compartimos datos con terceros, no utilizamos servidores propios de almacenamiento y cumplimos estrictamente con la <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" style="color: #2ecc71; text-decoration: underline;">Política de Datos de Usuario de los Servicios de la API de Google</a>, incluidos los requisitos de Uso Limitado.
+            This application operates 100% on the client side (Client-Side Single Page App) inside the user's web browser. We do not store, transfer, or share user data with third parties or external databases. <em>Pudu Mail - Attachment Explorer's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" style="color: #2ecc71; text-decoration: underline;">Google API Services User Data Policy</a>, including the Limited Use requirements.</em>
           </p>
         </div>
       </div>
@@ -152,14 +152,14 @@
       <!-- Mandatory Google Compliance Legal Footer -->
       <div class="hero-legal-footer">
         <div class="legal-links">
-          <a href="https://pudumail.pp.ua/privacy.html" target="_blank">Política de Privacidad</a>
+          <a href="https://pudumail.pp.ua/privacy.html" target="_blank">Privacy Policy / Política de Privacidad</a>
           <span>•</span>
-          <a href="https://pudumail.pp.ua/terms.html" target="_blank">Términos de Servicio</a>
+          <a href="https://pudumail.pp.ua/terms.html" target="_blank">Terms of Service / Términos de Servicio</a>
           <span>•</span>
-          <a href="mailto:carlossilcac@gmail.com">Contacto (carlossilcac@gmail.com)</a>
+          <a href="mailto:carlossilcac@gmail.com">Developer Contact: carlossilcac@gmail.com</a>
         </div>
         <p class="trademark-disclaimer">
-          Pudu Mail - Attachment Explorer es una aplicación independiente desarrollada por terceros y no está afiliada, respaldada ni patrocinada por Google LLC. Gmail™ es una marca registrada de Google LLC.
+          Pudu Mail - Attachment Explorer is an independent third-party web application and is not affiliated, endorsed, or sponsored by Google LLC. Gmail™ is a trademark of Google LLC.
         </p>
       </div>
     </div>
